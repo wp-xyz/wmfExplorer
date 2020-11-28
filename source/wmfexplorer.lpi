@@ -68,12 +68,12 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="bin\$(TargetCPU)-$(TargetOS)\wmfexplorer"/>
+      <Filename Value="../bin/$(TargetCPU)-$(TargetOS)/wmfexplorer"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
       <OtherUnitFiles Value="thirdparty"/>
-      <UnitOutputDirectory Value="ppu\$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="../ppu/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
