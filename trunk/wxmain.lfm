@@ -191,23 +191,6 @@ object MainForm: TMainForm
       Caption = 'Data'
       ClientHeight = 634
       ClientWidth = 726
-      object HexView: TKHexEditor
-        Left = 0
-        Height = 249
-        Top = 0
-        Width = 726
-        AddressMode = eamDec
-        Align = alClient
-        Colors.DigitBkGnd = clMoneyGreen
-        DigitGrouping = 1
-        Font.Height = -12
-        Font.Name = 'Courier New'
-        Font.Pitch = fpFixed
-        Font.Style = [fsBold]
-        ReadOnly = True
-        TabOrder = 0
-        OnClick = HexViewClick
-      end
       object Splitter2: TSplitter
         Cursor = crVSplit
         Left = 0
@@ -229,7 +212,7 @@ object MainForm: TMainForm
         MouseWheelOption = mwGrid
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goDrawFocusSelected, goColSizing, goThumbTracking, goSmoothScroll]
         RowCount = 17
-        TabOrder = 2
+        TabOrder = 1
         TitleStyle = tsNative
         OnClick = ValueGridClick
         OnPrepareCanvas = ValueGridPrepareCanvas
@@ -245,6 +228,34 @@ object MainForm: TMainForm
           0
           'Offset range'
         )
+      end
+      object HexPanel: TPanel
+        Left = 0
+        Height = 249
+        Top = 0
+        Width = 726
+        Align = alClient
+        BevelOuter = bvNone
+        ClientHeight = 249
+        ClientWidth = 726
+        TabOrder = 2
+        object HexView: TKHexEditor
+          Left = 0
+          Height = 249
+          Top = 0
+          Width = 726
+          AddressMode = eamDec
+          Align = alClient
+          Colors.DigitBkGnd = clMoneyGreen
+          DigitGrouping = 1
+          Font.Height = -12
+          Font.Name = 'Courier New'
+          Font.Pitch = fpFixed
+          Font.Style = [fsBold]
+          ReadOnly = True
+          TabOrder = 0
+          OnClick = HexViewClick
+        end
       end
     end
     object PgGraphic: TTabSheet

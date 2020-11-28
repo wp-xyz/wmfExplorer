@@ -27,6 +27,7 @@ type
     OffsetInfo: TLabel;
     MRUPopupMenu: TPopupMenu;
     Panel2: TPanel;
+    HexPanel: TPanel;
     RecordTypeInfo: TLabel;
     ColorDisplay: TShape;
     SizeInfo: TLabel;

@@ -20,13 +20,13 @@
     </PublishOptions>
     <RunParams>
       <local>
-        <CommandLineParams Value="D:\Prog_Lazarus\wp-laz\wmfExplorer\samples\inkscape_O.wmf"/>
+        <CommandLineParams Value="D:\Prog_Lazarus\wp-git\wmfExplorer\samples\sample.wmf"/>
       </local>
       <FormatVersion Value="2"/>
       <Modes Count="1">
         <Mode0 Name="default">
           <local>
-            <CommandLineParams Value="D:\Prog_Lazarus\wp-laz\wmfExplorer\samples\inkscape_O.wmf"/>
+            <CommandLineParams Value="D:\Prog_Lazarus\wp-git\wmfExplorer\samples\sample.wmf"/>
           </local>
         </Mode0>
       </Modes>
