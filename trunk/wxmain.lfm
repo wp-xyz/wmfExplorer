@@ -1,0 +1,509 @@
+object MainForm: TMainForm
+  Left = 262
+  Height = 730
+  Top = 155
+  Width = 1024
+  Caption = 'MainForm'
+  ClientHeight = 710
+  ClientWidth = 1024
+  Menu = MainMenu1
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '1.7'
+  object Tree: TVirtualStringTree
+    Left = 0
+    Height = 662
+    Top = 48
+    Width = 285
+    Align = alLeft
+    DefaultText = 'Node'
+    Header.AutoSizeIndex = 1
+    Header.Columns = <    
+      item
+        Alignment = taCenter
+        Position = 0
+        Text = 'Offset'
+        Width = 80
+      end    
+      item
+        Options = [coAllowClick, coDraggable, coEnabled, coParentBidiMode, coParentColor, coResizable, coShowDropMark, coVisible, coSmartResize, coAllowFocus]
+        Position = 1
+        Text = 'Description'
+        Width = 201
+      end>
+    Header.DefaultHeight = 20
+    Header.Font.Style = [fsBold]
+    Header.Height = 20
+    Header.Options = [hoAutoResize, hoColumnResize, hoDrag, hoShowSortGlyphs, hoVisible]
+    TabOrder = 0
+    TreeOptions.PaintOptions = [toShowButtons, toShowDropmark, toThemeAware, toUseBlendedImages]
+    TreeOptions.SelectionOptions = [toExtendedFocus, toFullRowSelect]
+    OnFocusChanged = TreeFocusChanged
+    OnFreeNode = TreeFreeNode
+    OnGetText = TreeGetText
+  end
+  object Splitter1: TSplitter
+    Left = 285
+    Height = 662
+    Top = 48
+    Width = 5
+  end
+  object PageControl1: TPageControl
+    Left = 290
+    Height = 662
+    Top = 48
+    Width = 734
+    ActivePage = PgAnalysis
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 2
+    OnChange = PageControl1Change
+    object PgAnalysis: TTabSheet
+      Caption = 'Analysis'
+      ClientHeight = 634
+      ClientWidth = 726
+      object AnalysisTree: TVirtualStringTree
+        Left = 0
+        Height = 570
+        Top = 64
+        Width = 726
+        Align = alClient
+        DefaultText = 'Node'
+        Header.AutoSizeIndex = 2
+        Header.Columns = <        
+          item
+            Alignment = taCenter
+            Position = 0
+            Text = 'Offset'
+            Width = 80
+          end        
+          item
+            Position = 1
+            Text = 'Value'
+            Width = 150
+          end        
+          item
+            Position = 2
+            Text = 'Description'
+            Width = 492
+          end>
+        Header.DefaultHeight = 20
+        Header.Font.Style = [fsBold]
+        Header.Height = 20
+        Header.Options = [hoAutoResize, hoColumnResize, hoDrag, hoShowSortGlyphs, hoVisible]
+        TabOrder = 0
+        TreeOptions.PaintOptions = [toShowButtons, toShowDropmark, toThemeAware, toUseBlendedImages]
+        TreeOptions.SelectionOptions = [toExtendedFocus, toFullRowSelect]
+        OnFreeNode = AnalysisTreeFreeNode
+        OnGetText = AnalysisTreeGetText
+      end
+      object Panel1: TPanel
+        Left = 0
+        Height = 64
+        Top = 0
+        Width = 726
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 64
+        ClientWidth = 726
+        TabOrder = 1
+        object LblOffset: TLabel
+          Left = 11
+          Height = 15
+          Top = 8
+          Width = 39
+          Caption = 'Offset:'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object LblRecordType: TLabel
+          Left = 11
+          Height = 15
+          Top = 24
+          Width = 71
+          Caption = 'Record type:'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object LblSize: TLabel
+          Left = 11
+          Height = 15
+          Top = 40
+          Width = 26
+          Caption = 'Size:'
+          Font.Style = [fsBold]
+          ParentColor = False
+          ParentFont = False
+        end
+        object OffsetInfo: TLabel
+          Left = 109
+          Height = 15
+          Top = 8
+          Width = 27
+          Caption = '         '
+          ParentColor = False
+        end
+        object RecordTypeInfo: TLabel
+          Left = 109
+          Height = 15
+          Top = 24
+          Width = 30
+          Caption = '          '
+          ParentColor = False
+        end
+        object SizeInfo: TLabel
+          Left = 109
+          Height = 15
+          Top = 40
+          Width = 36
+          Caption = '            '
+          ParentColor = False
+        end
+        object ColorDisplay: TShape
+          Left = 520
+          Height = 48
+          Top = 8
+          Width = 49
+          Brush.Style = bsClear
+          Pen.Style = psClear
+        end
+        object Panel2: TPanel
+          Left = 672
+          Height = 48
+          Top = 8
+          Width = 53
+          Anchors = [akTop, akRight]
+          BevelInner = bvRaised
+          BevelOuter = bvLowered
+          TabOrder = 0
+        end
+        object Image: TImage
+          Left = 584
+          Height = 48
+          Top = 8
+          Width = 58
+        end
+      end
+    end
+    object PgData: TTabSheet
+      Caption = 'Data'
+      ClientHeight = 634
+      ClientWidth = 726
+      object HexView: TKHexEditor
+        Left = 0
+        Height = 249
+        Top = 0
+        Width = 726
+        AddressMode = eamDec
+        Align = alClient
+        Colors.DigitBkGnd = clMoneyGreen
+        DigitGrouping = 1
+        Font.Height = -12
+        Font.Name = 'Courier New'
+        Font.Pitch = fpFixed
+        Font.Style = [fsBold]
+        ReadOnly = True
+        TabOrder = 0
+        OnClick = HexViewClick
+      end
+      object Splitter2: TSplitter
+        Cursor = crVSplit
+        Left = 0
+        Height = 5
+        Top = 249
+        Width = 726
+        Align = alBottom
+        ResizeAnchor = akBottom
+      end
+      object ValueGrid: TStringGrid
+        Left = 0
+        Height = 380
+        Top = 254
+        Width = 726
+        Align = alBottom
+        ColCount = 3
+        DefaultColWidth = 200
+        FixedCols = 0
+        MouseWheelOption = mwGrid
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goDrawFocusSelected, goColSizing, goThumbTracking, goSmoothScroll]
+        RowCount = 17
+        TabOrder = 2
+        TitleStyle = tsNative
+        OnClick = ValueGridClick
+        OnPrepareCanvas = ValueGridPrepareCanvas
+        Cells = (
+          3
+          0
+          0
+          'Data type'
+          1
+          0
+          'Value'
+          2
+          0
+          'Offset range'
+        )
+      end
+    end
+    object PgGraphic: TTabSheet
+      Caption = 'Graphic'
+      ClientHeight = 634
+      ClientWidth = 726
+      object PaintBox1: TPaintBox
+        Left = 0
+        Height = 634
+        Top = 0
+        Width = 726
+        Align = alClient
+        OnPaint = PaintBox1Paint
+      end
+    end
+  end
+  object CoolBar1: TCoolBar
+    Left = 0
+    Height = 48
+    Top = 0
+    Width = 1024
+    AutoSize = True
+    Bands = <    
+      item
+        Control = ToolBar1
+        Width = 1053
+      end>
+    GrabStyle = gsGripper
+    GrabWidth = 5
+    HorizontalSpacing = 0
+    VerticalSpacing = 0
+    object ToolBar1: TToolBar
+      AnchorSideLeft.Control = CoolBar1
+      AnchorSideTop.Control = CoolBar1
+      Left = 9
+      Height = 44
+      Top = 2
+      Width = 1044
+      Align = alNone
+      AutoSize = True
+      BorderSpacing.Left = 12
+      ButtonHeight = 44
+      ButtonWidth = 48
+      Caption = 'ToolBar1'
+      EdgeBorders = []
+      Images = ImageList1
+      ShowCaptions = True
+      TabOrder = 0
+      Transparent = True
+      object ToolButton1: TToolButton
+        Left = 1
+        Top = 0
+        Action = AcFileOpen
+        DropdownMenu = MRUPopupMenu
+        Style = tbsDropDown
+      end
+      object ToolButton2: TToolButton
+        Left = 62
+        Top = 0
+        Action = AcFiileExit
+      end
+    end
+  end
+  object ImageList1: TImageList
+    left = 128
+    top = 320
+    Bitmap = {
+      4C69020000001000000010000000FFFFFF00FFFFFF00459AD3EF4498D2FF4197
+      D1FF3F95D1FF3D94D0FF3B93D0FF3B92CFFF3B92CFFF3B92CFFF3D94D0FF4398
+      D2EF00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF004297D2FF3B93D0FF62AD
+      DCFF93CDEDFFBBE7FAFFD9FCFFFFD9FAFFFFD7F9FFFFD7F9FFFFD9FBFFFF3D94
+      D0FF00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF003C93D0FFE9FFFFFFA8DA
+      F3FF7BBDE4FF4398D1FF3493D1FF46AAE0FF53BDEBFF61D3FBFFCEF8FFFF3B92
+      CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF003991CFFFE9FFFFFFAFF0
+      FFFFCEF7FFFFDAFAFFFFC5EBFBFF90C8EAFF66ADDBFF47A8DDFFCBF8FFFF3C92
+      CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF003A91CEFFD2FCFFFF7AE2
+      FCFF77DDFCFF7FDFFBFF9BE6FCFFB4EDFFFFD8FAFFFF318ACBFFC6F8FFFF3D93
+      CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF003B91CEFFC9F9FFFF7EE2
+      FCFF7CDEFCFF78DCFBFF72D9FAFF6AD6FAFFD4F7FFFF318ACBFFC1F8FFFF3D93
+      CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF003C91CEFFC0F8FFFF7FE2
+      FCFF7DDFFCFF7ADDFBFF75DAFAFF6DD7FAFFC7F3FFFF338BCBFFBCF7FFFF3D92
+      CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF003C92CEFFB6F6FFFF80E3
+      FCFF7DDFFCFF7ADDFBFF76DAFAFF6ED7FAFFBAEFFFFF338BCBFFB5F7FFFF3A8F
+      CDFF4397D1E7FFFFFF00FFFFFF00FFFFFF00FFFFFF003D92CEFFADF3FFFF81E3
+      FCFF7EDFFCFF7ADDFBFF76DAFAFF6FD8FAFFADEBFFFF358ACBFFB0F4FFFFABF4
+      FFFF3F94D0FFFFFFFF00FFFFFF00FFFFFF00FFFFFF003E92CEFFA3F1FFFF82E3
+      FCFF7EDFFCFF7ADDFBFF76DAFAFF71D9FBFFA0E8FFFF368ACAFF87EBFFFFA3F2
+      FFFF3E92CEFFFFFFFF00FFFFFF00FFFFFF00FFFFFF003E92CEFF9AF0FFFF83E4
+      FDFF7EDFFCFF7ADDFBFF76DAFAFF8AE2FEFF4EA9DDFF54ABDCFF8DEDFFFF9FF3
+      FFFF3E92CFFFFFFFFF00FFFFFF00FFFFFF00FFFFFF004094CFFF92F1FFFF85E7
+      FFFF80E1FDFF7ADEFBFF77DBFBFF85E2FFFF3B8DCBFF93F1FFFF96F3FFFF9FF9
+      FFFF4094D0FFFFFFFF00FFFFFF00FFFFFF00FFFFFF004295CEEF58B0DFFF6DC9
+      EFFF7FE2FDFF7EE3FEFF7ADEFCFF80E2FFFF3F92CEFF4094CFFF4093CFFF4094
+      D0FF4396CFF1FFFFFF00FFFFFF00FFFFFF00FFFFFF000000002F326F997C3D8A
+      C1C74092CEFF54ADDEFF66C4EDFF7AE0FEFF4295D0FF1F455F502653725A2859
+      7A5F0000002FFFFFFF00FFFFFF00FFFFFF00FFFFFF0000000000000000120000
+      002500000033326E987A3E8BC1C84396D1FF4496CFF1000000070000000A0000
+      000B00000000FFFFFF00FFFFFF00FFFFFF00FFFFFF0000000000000000000000
+      0000000000000000001200000025000000330000002F00000000000000000000
+      000000000000FFFFFF00FFFFFF004A7CA5004A7CA5004A7CA5004A7CA5004A7E
+      A7004A7EA8004A7EA8004A7EA8004A7EA800497DA7004579A400709BBE00B5D2
+      EA00C3DAEF58CDE3F5FB3F75A1FF4B7CA6004A7CA5004A7CA6004A7EA8B04A82
+      AEFF4A83B0FF4A83B0FF4A83B0FF4A83B0FF4A82AFFF447DA9FF709CBFFFB9D5
+      EBFFB3D1EAFFC1DBF2FF4279A5FF4F79AB004C7AA7004A7BA6004A7FACFF4438
+      31FF433B37FF433D38FF433D38FF433D38FF423B36FF3C332CFFB9DAF5FF7FB0
+      DAFF5495CCFFC0DAEFFF467CA8FF009242005276AF004E77AB004D7BB0FF4C3D
+      3BFF4A4343FF484544FF484644FF484644FF474542FF433C36FF5FA1D8FF5C9A
+      CCFF5896C9FFB8D3EBFF4980ACFF00904C00009147001A866E0017866DFF0096
+      47FF523F45FF4F4749FF4D494AFF4C4A4AFF4C4848FF4A423DFF60A0D5FF5D98
+      C9FF5894C6FFAFCCE6FF4B83B0FF008F4E00008F4C00008E4900008B44FFA0E8
+      DAFF009144FF55434AFF524B4DFF4F4D4EFF4F4D4CFF4D4641FF5E9CD2FF5C95
+      C5FF5990C1FFA6C4DFFF4E86B5FF008D4CEF008A47FF008844FF00853FFF00C1
+      A0FF97E3D1FF008F43FF5A484EFF565051FF53514FFF524B45FF5B9ACDFF5C91
+      C1FF20B7F5FF9EBCD7FF5189B8FF008A47FF61E1D0FF60DDCAFF63DCC8FF00C4
+      9BFF00C69CFF82E1C8FF009447FF5C5054FF585353FF574F4AFF5A96CAFF5B8F
+      BEFF22B9F7FF95B5D3FF548DBCFF008A47FF63EDD0FF00D4A0FF00D29EFF00CC
+      9CFF00CD9CFF6FDCBDFF009346FF615457FF5C5756FF5B534DFF5794C5FF588E
+      BCFF47749BFF88AFCFFF5790C0FF008B4BF2008A47FF008845FF008441FF00DA
+      A2FF60D9B3FF008D42FF68545AFF625B5CFF605C5AFF605852FF5490C2FF558C
+      BAFF4E81ADFF7EA6C8FF5A94C4FF000000300000003300000033008C46FF4FDD
+      B0FF008D43FF6B585EFF655E60FF636160FF62605FFF645D57FF518DBEFF528A
+      B7FF5187B4FF739FC2FF5D97C9FF66565D0069555C0010866D0013826BFF0093
+      46FF715C62FF6A6263FF676463FF666463FF676462FF68615BFF4F8ABBFF5086
+      B4FF4F84B1FF6895B9FF5F9BCDFF5E5B5C005F5A5C00635859003F69A5FF7566
+      67FF706869FF6D6969FF6C6A69FF6C6A69FF6C6A68FF6E6762FF4C89BAFF4E85
+      B2FF4D83AEFF5D8CB2FF629ED1FF5C5C5CFF5C5C5CFF5E5B5AFF5E5A59FF5D5A
+      5AFF5B5A5BFF5A5B5BFF5A5B5BFF5A5B5BFF5B5A5AFF5C5956FF576876FF4E7E
+      A4FF4C80ACFF5082ABFF65A2D5FF000000330000003300000033000000330000
+      0033000000330000003300000033000000330000003300000033000000330000
+      0033365D7B79497BA2FC68A4D9FF000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000120000003200000033
+    }
+  end
+  object MainMenu1: TMainMenu
+    Images = ImageList1
+    left = 128
+    top = 112
+    object MnuFile: TMenuItem
+      Caption = 'File'
+      object MnuFileOpen: TMenuItem
+        Action = AcFileOpen
+        Bitmap.Data = {
+          36040000424D3604000000000000360000002800000010000000100000000100
+          2000000000000004000064000000640000000000000000000000FFFFFF00FFFF
+          FF00000000000000000000000000000000000000001200000025000000330000
+          002F00000000000000000000000000000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF0000000000000000120000002500000033326E987A3E8BC1C84396D1FF4496
+          CFF1000000070000000A0000000B00000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF000000002F326F997C3D8AC1C74092CEFF54ADDEFF66C4EDFF7AE0FEFF4295
+          D0FF1F455F502653725A28597A5F0000002FFFFFFF00FFFFFF00FFFFFF00FFFF
+          FF004295CEEF58B0DFFF6DC9EFFF7FE2FDFF7EE3FEFF7ADEFCFF80E2FFFF3F92
+          CEFF4094CFFF4093CFFF4094D0FF4396CFF1FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF004094CFFF92F1FFFF85E7FFFF80E1FDFF7ADEFBFF77DBFBFF85E2FFFF3B8D
+          CBFF93F1FFFF96F3FFFF9FF9FFFF4094D0FFFFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003E92CEFF9AF0FFFF83E4FDFF7EDFFCFF7ADDFBFF76DAFAFF8AE2FEFF4EA9
+          DDFF54ABDCFF8DEDFFFF9FF3FFFF3E92CFFFFFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003E92CEFFA3F1FFFF82E3FCFF7EDFFCFF7ADDFBFF76DAFAFF71D9FBFFA0E8
+          FFFF368ACAFF87EBFFFFA3F2FFFF3E92CEFFFFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003D92CEFFADF3FFFF81E3FCFF7EDFFCFF7ADDFBFF76DAFAFF6FD8FAFFADEB
+          FFFF358ACBFFB0F4FFFFABF4FFFF3F94D0FFFFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003C92CEFFB6F6FFFF80E3FCFF7DDFFCFF7ADDFBFF76DAFAFF6ED7FAFFBAEF
+          FFFF338BCBFFB5F7FFFF3A8FCDFF4397D1E7FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003C91CEFFC0F8FFFF7FE2FCFF7DDFFCFF7ADDFBFF75DAFAFF6DD7FAFFC7F3
+          FFFF338BCBFFBCF7FFFF3D92CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003B91CEFFC9F9FFFF7EE2FCFF7CDEFCFF78DCFBFF72D9FAFF6AD6FAFFD4F7
+          FFFF318ACBFFC1F8FFFF3D93CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003A91CEFFD2FCFFFF7AE2FCFF77DDFCFF7FDFFBFF9BE6FCFFB4EDFFFFD8FA
+          FFFF318ACBFFC6F8FFFF3D93CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003991CFFFE9FFFFFFAFF0FFFFCEF7FFFFDAFAFFFFC5EBFBFF90C8EAFF66AD
+          DBFF47A8DDFFCBF8FFFF3C92CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF003C93D0FFE9FFFFFFA8DAF3FF7BBDE4FF4398D1FF3493D1FF46AAE0FF53BD
+          EBFF61D3FBFFCEF8FFFF3B92CFFF00000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF004297D2FF3B93D0FF62ADDCFF93CDEDFFBBE7FAFFD9FCFFFFD9FAFFFFD7F9
+          FFFFD7F9FFFFD9FBFFFF3D94D0FF00000000FFFFFF00FFFFFF00FFFFFF00FFFF
+          FF00459AD3EF4498D2FF4197D1FF3F95D1FF3D94D0FF3B93D0FF3B92CFFF3B92
+          CFFF3B92CFFF3D94D0FF4398D2EF00000000FFFFFF00FFFFFF00
+        }
+      end
+      object MnuRecentlyOpened: TMenuItem
+        Caption = 'Recently used'
+      end
+      object MenuItem2: TMenuItem
+        Caption = '-'
+      end
+      object MnuFileClose: TMenuItem
+        Action = AcFiileExit
+        Bitmap.Data = {
+          36040000424D3604000000000000360000002800000010000000100000000100
+          2000000000000004000064000000640000000000000000000000000000000000
+          0000000000000000000000000000000000000000000000000000000000000000
+          0000000000000000000000000000000000120000003200000033000000330000
+          0033000000330000003300000033000000330000003300000033000000330000
+          0033000000330000003300000033365D7B79497BA2FC68A4D9FF5C5C5CFF5C5C
+          5CFF5E5B5AFF5E5A59FF5D5A5AFF5B5A5BFF5A5B5BFF5A5B5BFF5A5B5BFF5B5A
+          5AFF5C5956FF576876FF4E7EA4FF4C80ACFF5082ABFF65A2D5FF5E5B5C005F5A
+          5C00635859003F69A5FF756667FF706869FF6D6969FF6C6A69FF6C6A69FF6C6A
+          68FF6E6762FF4C89BAFF4E85B2FF4D83AEFF5D8CB2FF629ED1FF66565D006955
+          5C0010866D0013826BFF009346FF715C62FF6A6263FF676463FF666463FF6764
+          62FF68615BFF4F8ABBFF5086B4FF4F84B1FF6895B9FF5F9BCDFF000000300000
+          003300000033008C46FF4FDDB0FF008D43FF6B585EFF655E60FF636160FF6260
+          5FFF645D57FF518DBEFF528AB7FF5187B4FF739FC2FF5D97C9FF008B4BF2008A
+          47FF008845FF008441FF00DAA2FF60D9B3FF008D42FF68545AFF625B5CFF605C
+          5AFF605852FF5490C2FF558CBAFF4E81ADFF7EA6C8FF5A94C4FF008A47FF63ED
+          D0FF00D4A0FF00D29EFF00CC9CFF00CD9CFF6FDCBDFF009346FF615457FF5C57
+          56FF5B534DFF5794C5FF588EBCFF47749BFF88AFCFFF5790C0FF008A47FF61E1
+          D0FF60DDCAFF63DCC8FF00C49BFF00C69CFF82E1C8FF009447FF5C5054FF5853
+          53FF574F4AFF5A96CAFF5B8FBEFF22B9F7FF95B5D3FF548DBCFF008D4CEF008A
+          47FF008844FF00853FFF00C1A0FF97E3D1FF008F43FF5A484EFF565051FF5351
+          4FFF524B45FF5B9ACDFF5C91C1FF20B7F5FF9EBCD7FF5189B8FF008F4E00008F
+          4C00008E4900008B44FFA0E8DAFF009144FF55434AFF524B4DFF4F4D4EFF4F4D
+          4CFF4D4641FF5E9CD2FF5C95C5FF5990C1FFA6C4DFFF4E86B5FF00904C000091
+          47001A866E0017866DFF009647FF523F45FF4F4749FF4D494AFF4C4A4AFF4C48
+          48FF4A423DFF60A0D5FF5D98C9FF5894C6FFAFCCE6FF4B83B0FF009242005276
+          AF004E77AB004D7BB0FF4C3D3BFF4A4343FF484544FF484644FF484644FF4745
+          42FF433C36FF5FA1D8FF5C9ACCFF5896C9FFB8D3EBFF4980ACFF4F79AB004C7A
+          A7004A7BA6004A7FACFF443831FF433B37FF433D38FF433D38FF433D38FF423B
+          36FF3C332CFFB9DAF5FF7FB0DAFF5495CCFFC0DAEFFF467CA8FF4B7CA6004A7C
+          A5004A7CA6004A7EA8B04A82AEFF4A83B0FF4A83B0FF4A83B0FF4A83B0FF4A82
+          AFFF447DA9FF709CBFFFB9D5EBFFB3D1EAFFC1DBF2FF4279A5FF4A7CA5004A7C
+          A5004A7CA5004A7CA5004A7EA7004A7EA8004A7EA8004A7EA8004A7EA800497D
+          A7004579A400709BBE00B5D2EA00C3DAEF58CDE3F5FB3F75A1FF
+        }
+      end
+    end
+  end
+  object ActionList1: TActionList
+    Images = ImageList1
+    left = 128
+    top = 224
+    object AcFileOpen: TFileOpen
+      Category = 'File'
+      Caption = '&Open ...'
+      Dialog.DefaultExt = '.wmf'
+      Dialog.Filter = 'Windows meta files (*.wmf)|*.wmf'
+      Dialog.Options = [ofFileMustExist, ofEnableSizing, ofViewDetail]
+      Hint = 'Open'
+      ImageIndex = 0
+      ShortCut = 16463
+      OnAccept = AcFileOpenAccept
+    end
+    object AcFiileExit: TFileExit
+      Category = 'File'
+      Caption = 'E&xit'
+      Hint = 'Exit'
+      ImageIndex = 1
+    end
+  end
+  object MRUMenuManager: TMRUMenuManager
+    MenuItem = MnuRecentlyOpened
+    PopupMenu = MRUPopupMenu
+    IniSection = 'RecentFiles'
+    MenuCaptionMask = '%d - %s'
+    OnRecentFile = MRUMenuManagerRecentFile
+    left = 128
+    top = 421
+  end
+  object MRUPopupMenu: TPopupMenu
+    left = 128
+    top = 506
+  end
+end
