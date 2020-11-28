@@ -11,7 +11,6 @@
       <Title Value="wmfexplorer"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
-      <Icon Value="0"/>
     </General>
     <BuildModes Count="1">
       <Item1 Name="Default" Default="True"/>
@@ -72,15 +71,15 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="wmfexplorer"/>
+      <Filename Value="bin\$(TargetCPU)-$(TargetOS)\wmfexplorer"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="ppu\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
-        <UseExternalDbgSyms Value="True"/>
+        <DebugInfoType Value="dsDwarf2"/>
       </Debugging>
       <Options>
         <Win32>

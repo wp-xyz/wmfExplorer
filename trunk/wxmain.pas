@@ -49,8 +49,8 @@ type
     ToolBar1: TToolBar;
     ToolButton1: TToolButton;
     ToolButton2: TToolButton;
-    Tree: TVirtualStringTree;
-    AnalysisTree: TVirtualStringTree;
+    Tree: TLazVirtualStringTree;
+    AnalysisTree: TLazVirtualStringTree;
     procedure AcFileOpenAccept(Sender: TObject);
     procedure AnalysisTreeFreeNode(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure AnalysisTreeGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
