@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, mrumanager, Forms, Controls, Graphics, Dialogs,
-  ComCtrls, Menus, ActnList, StdActns, ExtCtrls, Grids, StdCtrls, KHexEditor,
+  ComCtrls, Menus, ActnList, StdActns, ExtCtrls, Grids, StdCtrls, mpHexEditor,
   laz.VirtualTrees;
 
 type
@@ -20,7 +20,6 @@ type
     CoolBar1: TCoolBar;
     Image: TImage;
     ImageList1: TImageList;
-    HexView: TKHexEditor;
     MnuRecentlyOpened: TMenuItem;
     MenuItem2: TMenuItem;
     MRUMenuManager: TMRUMenuManager;
@@ -78,6 +77,7 @@ type
     FStream: TStream;
     FBuffer: array of byte;
     FCurrOffset: Int64;
+    FHexView: TMPHexEditor;
     function AddAnalysisNode(AOffset: Integer; AValue, ADescription: String): PVirtualNode;
     function AddNode(AOffset: Int64; AText: String; ASizeInBytes: Integer): PVirtualNode;
     function GetValueGridDatasize: Integer;
@@ -100,7 +100,6 @@ implementation
 
 uses
   StrUtils, LConvEncoding, LazUTF8, Math, bmpcomn,
-  KFunctions,
   fpvwmf, fpvectorial, fpvtocanvas, wxutils;
 
 const
@@ -204,8 +203,18 @@ begin
   AnalysisTree.Header.DefaultHeight := ValueGrid.DefaultRowHeight;
   AnalysisTree.ScrollBarOptions.VerticalIncrement := AnalysisTree.DefaultNodeHeight;
 
-  HexView.Font.Name := GetFixedFontName;;
-  HexView.Font.Style := [];
+  FHexView := TMPHexEditor.Create(self);
+  FHexView.Parent := HexPanel;
+  FHexView.Align := alClient;
+  FHexView.DrawGutter3D := false;
+  FHexView.WantTabs := false;
+  FHexView.OnClick := @HexViewClick;
+  FHexView.Font.Name := GetFixedFontName;
+  FHexView.Font.Style := [];
+  FHexView.Font.Size := 9;
+  FHexView.BytesPerColumn := 1;
+  FHexView.ReadOnlyView := true;
+  FHexView.ReadOnlyFile := true;
 
   with ValueGrid do begin
     ColCount := 3;
@@ -307,7 +316,8 @@ var
   pw: PWideChar;
   pa: PAnsiChar;
 begin
-  idx := HexView.SelStart.Index;
+//  idx := HexView.SelStart.Index;
+  idx := FHexView.SelStart;
 
   i := ValueGrid.RowCount;
   j := ValueGrid.ColCount;
@@ -500,7 +510,7 @@ begin
   end;
 
   FStream.Position := 0;
-  HexView.LoadFromStream(FStream);
+  FHexView.LoadFromStream(FStream);
   Tree.Clear;
   AnalysisTree.Clear;
 
@@ -523,6 +533,7 @@ begin
 
   // Read "normal" metafile header
   AddNode(FStream.Position, 'WMF header', SizeOf(mhdr));
+  mhdr := Default(TWMFHeader);
   FStream.ReadBuffer(mhdr, SizeOf(mhdr));
 
   // Read metafile records
@@ -1442,12 +1453,17 @@ end;
 
 procedure TMainForm.PopulateHexView;
 var
-  data: TDataSize;
+  stream: TMemoryStream;
 begin
-  data.Size := Length(FBuffer);
-  data.Data := @FBuffer[0];
-  HexView.Clear;
-  HexView.Append(0, data);
+  stream := TMemoryStream.Create;
+  try
+    stream.Write(FBuffer[0], Length(FBuffer));
+    stream.Position := 0;
+    FHexView.Clear;
+    FHexView.LoadFromStream(stream);
+  finally
+    stream.Free;
+  end;
 end;
 
 procedure TMainForm.ReadCmdLine;
@@ -1467,7 +1483,7 @@ begin
 
   if Node = nil then begin
     FStream.Position := 0;
-    HexView.LoadFromStream(FStream);
+    FHexView.LoadFromStream(FStream);
     exit;
   end;
 
@@ -1475,6 +1491,7 @@ begin
   if (data = nil) then
     exit;
 
+  // Read the stream at offset data^.Offset and put the data into FBuffer
   FStream.Position := data^.Offset;
   FCurrOffset := FStream.Position;
   if data^.Text = 'Placeable Meta Header' then begin
@@ -1530,20 +1547,22 @@ end;
 
 procedure TMainForm.ValueGridClick(Sender: TObject);
 var
-  sel: TKHexEditorSelection;
   n: Integer;
 begin
-  sel := HexView.SelStart;
+  if FHexView.SelStart = -1 then
+    exit;
 
   n := GetValueGridDataSize;
-  if n > 0 then begin
-    sel.Digit := 0;
-    HexView.SelStart := sel;
-    inc(sel.Index, n-1);
-    sel.Digit := 1;
-    HexView.SelEnd := sel;
-  end else
-    HexView.SelEnd := sel;
+  if n = -1 then
+    exit;
+
+  if FHexView.SelStart + n >= FHexView.DataSize then
+    exit;
+
+  if n > 0 then
+    FHexView.SelEnd := FHexView.SelStart + n - 1
+  else
+    FHexView.SelEnd := FHexView.SelStart;
 end;
 
 procedure TMainForm.ValueGridPrepareCanvas(sender: TObject; aCol,

@@ -31,7 +31,7 @@
         </Mode0>
       </Modes>
     </RunParams>
-    <RequiredPackages Count="5">
+    <RequiredPackages Count="4">
       <Item1>
         <PackageName Value="laz.virtualtreeview_package"/>
       </Item1>
@@ -42,11 +42,8 @@
         <PackageName Value="lazmrumenu"/>
       </Item3>
       <Item4>
-        <PackageName Value="KControlsLaz"/>
-      </Item4>
-      <Item5>
         <PackageName Value="LCL"/>
-      </Item5>
+      </Item4>
     </RequiredPackages>
     <Units Count="3">
       <Unit0>
@@ -75,6 +72,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="thirdparty"/>
       <UnitOutputDirectory Value="ppu\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
