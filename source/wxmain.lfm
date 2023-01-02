@@ -390,15 +390,6 @@ object MainForm: TMainForm
       ImageIndex = 1
     end
   end
-  object MRUMenuManager: TMRUMenuManager
-    MenuItem = MnuRecentlyOpened
-    PopupMenu = MRUPopupMenu
-    IniSection = 'RecentFiles'
-    MenuCaptionMask = '%d - %s'
-    OnRecentFile = MRUMenuManagerRecentFile
-    Left = 128
-    Top = 421
-  end
   object MRUPopupMenu: TPopupMenu
     Left = 128
     Top = 506

@@ -22,7 +22,6 @@ type
     ImageList1: TImageList;
     MnuRecentlyOpened: TMenuItem;
     MenuItem2: TMenuItem;
-    MRUMenuManager: TMRUMenuManager;
     OffsetInfo: TLabel;
     MRUPopupMenu: TPopupMenu;
     Panel2: TPanel;
@@ -78,6 +77,7 @@ type
     FBuffer: array of byte;
     FCurrOffset: Int64;
     FHexView: TMPHexEditor;
+    MRUMenuManager: TMRUMenuManager;
     function AddAnalysisNode(AOffset: Integer; AValue, ADescription: String): PVirtualNode;
     function AddNode(AOffset: Int64; AText: String; ASizeInBytes: Integer): PVirtualNode;
     function GetValueGridDatasize: Integer;
@@ -191,7 +191,16 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  MruMenuManager.IniFileName := CalcIniName;
+  MruMenuManager := TMruMenuManager.Create(self);
+  with MruMenuManager do
+  begin
+    MenuItem := MnuRecentlyOpened;
+    PopupMenu := MRUPopupMenu;
+    IniFileName := CalcIniName;
+    IniSection := 'RecentFiles';
+    MenuCaptionMask := '%d - %s';
+    OnRecentFile := @MRUMenuManagerRecentFile;
+  end;
 
   Tree.NodeDataSize := SizeOf(TWMFNodeData);
   Tree.DefaultNodeHeight := Tree.Canvas.TextHeight('Tg') + 4;
