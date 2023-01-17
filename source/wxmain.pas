@@ -15,12 +15,12 @@ type
 
   TMainForm = class(TForm)
     AcExternalViewer: TAction;
-    ActionList1: TActionList;
+    ActionList: TActionList;
     AcFiileExit: TFileExit;
     AcFileOpen: TFileOpen;
-    CoolBar1: TCoolBar;
+    CoolBar: TCoolBar;
     Image: TImage;
-    ImageList1: TImageList;
+    ImageList: TImageList;
     Label1: TLabel;
     WMFObjList: TListBox;
     MenuItem1: TMenuItem;
@@ -37,7 +37,7 @@ type
     LblOffset: TLabel;
     LblRecordType: TLabel;
     LblSize: TLabel;
-    MainMenu1: TMainMenu;
+    MainMenu: TMainMenu;
     MnuFileClose: TMenuItem;
     MnuFileOpen: TMenuItem;
     MnuFile: TMenuItem;
