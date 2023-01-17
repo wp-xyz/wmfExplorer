@@ -14,12 +14,16 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
+    AcExternalViewer: TAction;
     ActionList1: TActionList;
     AcFiileExit: TFileExit;
     AcFileOpen: TFileOpen;
     CoolBar1: TCoolBar;
     Image: TImage;
     ImageList1: TImageList;
+    Label1: TLabel;
+    WMFObjList: TListBox;
+    MenuItem1: TMenuItem;
     MnuRecentlyOpened: TMenuItem;
     MenuItem2: TMenuItem;
     OffsetInfo: TLabel;
@@ -28,6 +32,7 @@ type
     HexPanel: TPanel;
     RecordTypeInfo: TLabel;
     ColorDisplay: TShape;
+    Separator1: TMenuItem;
     SizeInfo: TLabel;
     LblOffset: TLabel;
     LblRecordType: TLabel;
@@ -43,6 +48,7 @@ type
     PgData: TTabSheet;
     PgGraphic: TTabSheet;
     Splitter2: TSplitter;
+    Splitter3: TSplitter;
     ValueGrid: TStringGrid;
     PgAnalysis: TTabSheet;
     ToolBar1: TToolBar;
@@ -50,6 +56,7 @@ type
     ToolButton2: TToolButton;
     Tree: TLazVirtualStringTree;
     AnalysisTree: TLazVirtualStringTree;
+    procedure AcExternalViewerExecute(Sender: TObject);
     procedure AcFileOpenAccept(Sender: TObject);
     procedure AnalysisTreeFreeNode(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure AnalysisTreeGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
@@ -86,6 +93,7 @@ type
     procedure PopulateHexView;
     procedure PopulateValueGrid;
     procedure UpdateCaption;
+    procedure UpdateWMFObjList(AOffset: Int64);
   public
     { public declarations }
     procedure ReadCmdLine;
@@ -99,7 +107,7 @@ implementation
 {$R *.lfm}
 
 uses
-  StrUtils, LConvEncoding, LazUTF8, Math, bmpcomn,
+  StrUtils, LCLIntf, LConvEncoding, LazUTF8, Math, bmpcomn,
   fpvwmf, fpvectorial, fpvtocanvas, wxutils;
 
 const
@@ -141,6 +149,12 @@ type
 procedure TMainForm.AcFileOpenAccept(Sender: TObject);
 begin
   LoadFile(AcFileOpen.Dialog.FileName);
+end;
+
+procedure TMainForm.AcExternalViewerExecute(Sender: TObject);
+begin
+  if FileExists(FFileName) then
+    OpenDocument(FFilename);
 end;
 
 function TMainForm.AddAnalysisNode(AOffset: Integer; AValue, ADescription: String): PVirtualNode;
@@ -199,6 +213,7 @@ begin
     IniFileName := CalcIniName;
     IniSection := 'RecentFiles';
     MenuCaptionMask := '%d - %s';
+    MaxRecent := 16;
     OnRecentFile := @MRUMenuManagerRecentFile;
   end;
 
@@ -867,596 +882,602 @@ var
   end;
 
 begin
-  AnalysisTree.Clear;
-  OffsetInfo.Caption := IntToStr(AOffset);
-  SizeInfo.Caption := IntToStr(Length(FBuffer)) + ' bytes';
-  ColorDisplay.Brush.Style := bsClear;
-  ColorDisplay.Pen.Style := psClear;
-  Image.Picture.Clear;
-  Image.Parent := Panel1;
-  ColorDisplay.Parent := Panel1;
-  Image.Align := alNone;
-  ColorDisplay.Align := alNone;
-  if ARecordType = $FFFF then begin  // Placeable meta header
-    phdr := PPlaceableMetaHeader(@FBuffer[0]);
-    RecordTypeInfo.Caption := 'Placeable meta header';
-    AddAnalysisNode(0, Format('$%.8x', [phdr^.Key]), 'Key (Magic number, always $9AC6CDD7)');
-    AddAnalysisNode(4, Format('%d ($%.4x)', [phdr^.Handle, phdr^.Handle]), 'Metafile HANDLE number (always 0)');
-    AddAnalysisNode(6, IntToStr(phdr^.Left), 'Left coordinate in metafile units');
-    AddAnalysisNode(8, IntToStr(phdr^.Top), 'Top coordinate in metafile units');
-    AddAnalysisNode(10, IntToStr(phdr^.Right), 'Right coordinate in metafile units');
-    AddAnalysisNode(12, IntToStr(phdr^.Bottom), 'Bottom coordinate in metafile units');
-    AddAnalysisNode(14, IntToStr(phdr^.Inch), 'Number of metafile units per inch');
-    AddAnalysisNode(16, IntToStr(phdr^.Reserved), 'Reserved (always 0)');
-    AddAnalysisNode(20, IntToStr(phdr^.Checksum), 'Checksum value for previous 10 WORDs');
-  end else
-  if ARecordType = $FFFE then begin // WMF Header
-    mhdr := PWMFHeader(@FBuffer[0]);
-    RecordTypeInfo.Caption := 'WMF header';
-    AddAnalysisNode(0, IntToStr(mhdr^.FileType), 'Type of metafile (0=memory, 1=disk)');
-    AddAnalysisNode(2, IntToStr(mhdr^.HeaderSize), 'Size of header in WORDS (always 9)');
-    AddAnalysisNode(4, Format('$%.4x', [mhdr^.Version]), 'Version of Microsoft Windows used');
-    AddAnalysisNode(6, IntToStr(mhdr^.FileSize), Format(
-      'Total size of the metafile in WORDs (%d bytes)', [mhdr^.FileSize*2]));
-    AddAnalysisNode(10, IntToStr(mhdr^.NumOfObjects), 'Number of objects in the file');
-    AddAnalysisNode(12, IntToStr(mhdr^.MaxRecordSize), Format(
-      'Size of largest record in WORDs (%d bytes)', [mhdr^.MaxRecordSize*2]));
-    AddAnalysisNode(16, IntToStr(mhdr^.NumOfParams), 'Not used (always 0)');
-  end else begin
-    RecordTypeInfo.Caption := Format('%0:s (%1:d = $%1:.4x)', [WMF_GetFuncName(ARecordType), ARecordType]);
-    AddAnalysisNode(0, IntToStr(GetDWord(0)),
-      'Record size (in WORDs)');
-    AddAnalysisNode(4, Format('$%.4x', [GetWord(4)]),
-      Format('Function code (%s)', [WMF_GetFuncName(GetWord(4))]));
+  AnalysisTree.BeginUpdate;
+  try
+    AnalysisTree.Clear;
+    OffsetInfo.Caption := IntToStr(AOffset);
+    SizeInfo.Caption := IntToStr(Length(FBuffer)) + ' bytes';
+    ColorDisplay.Brush.Style := bsClear;
+    ColorDisplay.Pen.Style := psClear;
+    Image.Picture.Clear;
+    Image.Parent := Panel1;
+    ColorDisplay.Parent := Panel1;
+    Image.Align := alNone;
+    ColorDisplay.Align := alNone;
+    if ARecordType = $FFFF then begin  // Placeable meta header
+      phdr := PPlaceableMetaHeader(@FBuffer[0]);
+      RecordTypeInfo.Caption := 'Placeable meta header';
+      AddAnalysisNode(0, Format('$%.8x', [phdr^.Key]), 'Key (Magic number, always $9AC6CDD7)');
+      AddAnalysisNode(4, Format('%d ($%.4x)', [phdr^.Handle, phdr^.Handle]), 'Metafile HANDLE number (always 0)');
+      AddAnalysisNode(6, IntToStr(phdr^.Left), 'Left coordinate in metafile units');
+      AddAnalysisNode(8, IntToStr(phdr^.Top), 'Top coordinate in metafile units');
+      AddAnalysisNode(10, IntToStr(phdr^.Right), 'Right coordinate in metafile units');
+      AddAnalysisNode(12, IntToStr(phdr^.Bottom), 'Bottom coordinate in metafile units');
+      AddAnalysisNode(14, IntToStr(phdr^.Inch), 'Number of metafile units per inch');
+      AddAnalysisNode(16, IntToStr(phdr^.Reserved), 'Reserved (always 0)');
+      AddAnalysisNode(20, IntToStr(phdr^.Checksum), 'Checksum value for previous 10 WORDs');
+    end else
+    if ARecordType = $FFFE then begin // WMF Header
+      mhdr := PWMFHeader(@FBuffer[0]);
+      RecordTypeInfo.Caption := 'WMF header';
+      AddAnalysisNode(0, IntToStr(mhdr^.FileType), 'Type of metafile (0=memory, 1=disk)');
+      AddAnalysisNode(2, IntToStr(mhdr^.HeaderSize), 'Size of header in WORDS (always 9)');
+      AddAnalysisNode(4, Format('$%.4x', [mhdr^.Version]), 'Version of Microsoft Windows used');
+      AddAnalysisNode(6, IntToStr(mhdr^.FileSize), Format(
+        'Total size of the metafile in WORDs (%d bytes)', [mhdr^.FileSize*2]));
+      AddAnalysisNode(10, IntToStr(mhdr^.NumOfObjects), 'Number of objects in the file');
+      AddAnalysisNode(12, IntToStr(mhdr^.MaxRecordSize), Format(
+        'Size of largest record in WORDs (%d bytes)', [mhdr^.MaxRecordSize*2]));
+      AddAnalysisNode(16, IntToStr(mhdr^.NumOfParams), 'Not used (always 0)');
+    end else begin
+      RecordTypeInfo.Caption := Format('%0:s (%1:d = $%1:.4x)', [WMF_GetFuncName(ARecordType), ARecordType]);
+      AddAnalysisNode(0, IntToStr(GetDWord(0)),
+        'Record size (in WORDs)');
+      AddAnalysisNode(4, Format('$%.4x', [GetWord(4)]),
+        Format('Function code (%s)', [WMF_GetFuncName(GetWord(4))]));
 
-    case ARecordType of
-      META_ARC:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'YENDARC (y coordinate of the ending point of radial line defining the end point)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'XENDARC (x coordinate of the ending point of radial line defining the end point)');
-          AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
-            'YSTARTARC (y coordinate of the ending point of radial line defining the start point)');
-          AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
-            'XSTARTARC (x coordinate of the ending point of radial line defining the start point)');
-          AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
-            'BOTTOMRECT (Bottom value of bounding rectangle, in logical units)');
-          AddAnalysisNode(16, IntToStr(GetSmallInt(16)),
-            'RIGHTRECT (Right value of the bouding rectangle, in logical units)');
-          AddAnalysisNode(18, IntToStr(GetSmallInt(18)),
-            'TOPRECT (Top value of the bounding rectangle, in logical units)');
-          AddAnalysisNode(20, IntToStr(GetSmallInt(20)),
-            'LEFTRECT (Left value of the bounding rect, in logical units)');
-        end;
-
-      META_CREATEBRUSHINDIRECT:
-        begin
-          n := GetWord(6);
-          AddAnalysisNode(6, IntToStr(n),
-            Format('Brush style (%s)', [WMF_GetBrushStyleName(n)]));
-          if n in [0, 2] then begin // BS_SOLID, BS_HATCHED
-            AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
-              'Intensity of red');
-            AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(9)]),
-              'Intensity of green');
-            AddAnalysisNode(10, Format('%0:d ($%0:.2x)', [GetByte(10)]),
-              'Intensity of blue');
-            AddAnalysisNode(11, Format('%0:d ($%0:.2x)', [GetByte(11)]),
-              'Reserved');
-            UpdateColorDisplay(GetDWord(8));
-          end else
-            AddAnalysisNode(8, Format('%0:d ($%0:.8x)', [GetDWord(8)]),
-              'Color (to be ignored for this pattern)');
-          if n in [3, 6, 2] then   // BS_PATTERN, BS_DIBPATTERNPT, BS_HATCHED
-            AddAnalysisNode(12, '(not decoded)', 'Brush hatch / pattern');
-        end;
-
-      META_CREATEFONTINDIRECT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'Font height (in logical units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'Font width (in logical units)');
-          AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
-            'Escapement (in tenths of degrees)');
-          AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
-            'Orientation (in tenths of degrees)');
-          AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
-            'Weight (0=Default, 400=Normal, 700=Bold), max 1000');
-          AddAnalysisNode(16, IntToStr(GetByte(16)),
-            'Italic (0=FALSE, 1=TRUE)');
-          AddAnalysisNode(17, IntToStr(GetByte(17)),
-            'Underline (0=FALSE, 1=TRUE)');
-          AddAnalysisNode(18, IntToStr(GetByte(18)),
-            'Strikeout (0=FALSE, 1=TRUE)');
-          AddAnalysisNode(19, IntToStr(GetByte(19)),
-            'CharSet');
-          AddAnalysisNode(20, IntToStr(GetByte(20)),
-            'OutPrecision');
-          AddAnalysisNode(21, IntToStr(GetByte(21)),
-            'ClipPrecision');
-          AddAnalysisNode(22, IntToStr(GetByte(22)),
-            'Quality');
-          AddAnalysisNode(23, IntToStr(GetByte(23)),
-            'Pitch and family');
-          AddAnalysisNode(24, GetCString(24, 32),
-            'Face name');
-        end;
-
-      META_CREATEPENINDIRECT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            Format('Pen style (%s)', [WMF_GetPenStyleName(GetWord(6))]));
-          AddAnalysisNode(8, IntToStr(GetWord(8)),
-            'Pen width');
-          AddAnalysisNode(10, IntToStr(GetWord(10)),
-            'Ignored');
-          AddAnalysisNode(12, Format('%0:d ($%0:.2x)', [GetByte(12)]),
-            'Intensity of red');
-          AddAnalysisNode(13, Format('%0:d ($%0:.2x)', [GetByte(13)]),
-            'Intensity of green');
-          AddAnalysisNode(14, Format('%0:d ($%0:.2x)', [GetByte(14)]),
-            'Intensity of blue');
-          AddAnalysisNode(15, Format('%0:d ($%0:.2x)', [GetByte(15)]),
-            'Reserved');
-          UpdateColorDisplay(GetDWord(12));
-        end;
-
-      META_DELETEOBJECT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            'Index into WMF Object Table to get object to be deleted');
-        end;
-
-      META_DIBCREATEPATTERNBRUSH:
-        begin
-          n := GetWord(6);
-          AddAnalysisNode(6, IntToStr(n),
-            Format('Brush style (%s)', [WMF_GetBrushStyleName(n)]));
-          n := GetWord(8);
-          AddAnalysisNode(8, IntToStr(n),
-            Format('Color usage (%s)', [WMF_GetColorUsageName(n)]));
-          n := GetDWord(10);
-          AddAnalysisNode(10, IntToStr(n),
-            'DIBHeaderInfo: HeaderSize');
-          if n = $0000000C then begin
-            AddAnalysisNode(14, IntToStr(GetWord(14)),
-              'BitmapCoreHeader.Width');
-            AddAnalysisNode(16, IntToStr(GetWord(16)),
-              'BitmapCoreHeader.Height');
-            AddAnalysisNode(18, IntToStr(GetWord(18)),
-              'BitmapCoreHeader.Planes');
-            AddAnalysisNode(20, IntToStr(GetWord(20)),
-              'BitmapCoreHeader.BitCount');
-            AddAnalysisNode(22, '...',
-              'Colors and bitmap buffer');
-          end else begin
-            AddAnalysisNode(14, IntToStr(GetDWord(14)),
-              'BitmapInfoHeader.Width');
-            AddAnalysisNode(18, IntToStr(GetDWord(18)),
-              'BitmapInfoHeader.Height');
-            AddAnalysisNode(22, IntToStr(GetWord(22)),
-              'BitmapInfoHeaer.Planes');
-            AddAnalysisNode(24, IntToStr(GetWord(24)),
-              'BitmapInfoHeader.BitCount');
-            n := GetDWord(26);
-            AddAnalysisNode(26, IntToStr(n), Format(
-              'BitmapInfoHeader.Compression (%s)', [WMF_GetCompressionName(n)]));
-            AddAnalysisNode(30, IntToStr(GetDWord(30)),
-              'BitmapInfoHeader.ImageSize, bytes');
-            AddAnalysisNode(34, IntToStr(GetDWord(34)),
-              'BitmapInfoHeader.XPelsPerMeter');
-            AddAnalysisNode(38, IntToStr(GetDWord(38)),
-              'BitmapInfoHeader.YPelsPerMeter');
-            AddAnalysisNode(42, IntToStr(GetDWord(42)),
-              'BitmapInfoHeader.ColorUsed');
-            AddAnalysisNode(46, IntToStr(GetDWord(46)),
-              'BitmapInfoHeader.ColorImportant');
-            AddAnalysisNode(50, '...',
-              'Colors and bitmap buffer');
-            bmp := GetBitmap(10);  // Offset to DIBHeaderInfo.Size
-            if bmp <> nil then begin
-              Image.Picture.Assign(bmp);
-              Image.Proportional := (bmp.Width > Image.Width) or (bmp.Height > Image.Height);
-              Image.Parent := Panel2;
-              Image.Align := alClient;
-              bmp.Free;
-            end;
-          end;
-        end;
-
-      META_ELLIPSE, META_RECTANGLE:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'Bottom value (in logical units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'Right value (in logical units)');
-          AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
-            'Top value (in logical units)');
-          AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
-            'Left value (in logical units)');
-        end;
-
-      META_EOF:
-        begin
-          // no more data
-        end;
-
-      META_EXTTEXTOUT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'Y coordinate (in logical units) where text is located');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'X coordinate (in logical units) where text is located');
-          j := GetSmallInt(10);
-          AddAnalysisNode(10, IntToStr(j),
-            'String length (character count)');
-          n := GetWord(12);
-          AddAnalysisNode(12, Format('%0:d ($%0:.4x)', [n]),
-            'Option flags (OPAQUE = 2, CLIPPED = 4)');
-          if n <> 0 then begin
+      case ARecordType of
+        META_ARC:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'YENDARC (y coordinate of the ending point of radial line defining the end point)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'XENDARC (x coordinate of the ending point of radial line defining the end point)');
+            AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
+              'YSTARTARC (y coordinate of the ending point of radial line defining the start point)');
+            AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
+              'XSTARTARC (x coordinate of the ending point of radial line defining the start point)');
             AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
-              'Background/clipping rectangle: Bottom');
+              'BOTTOMRECT (Bottom value of bounding rectangle, in logical units)');
             AddAnalysisNode(16, IntToStr(GetSmallInt(16)),
-              'Background/clipping rectangle: Right');
+              'RIGHTRECT (Right value of the bouding rectangle, in logical units)');
             AddAnalysisNode(18, IntToStr(GetSmallInt(18)),
-              'Background/clipping rectangle: Top');
+              'TOPRECT (Top value of the bounding rectangle, in logical units)');
             AddAnalysisNode(20, IntToStr(GetSmallInt(20)),
-              'Background/clipping rectangle: Left');
-            k := 22;
-          end else
-            k := 14;
-          AddAnalysisNode(k, GetString(k, j),
-            'String');
-          if odd(j) then inc(k, j+1) else inc(k,j);
-          for i:=0 to j-1 do
-            if k + i*2 < Length(FBuffer) then
-              AddAnalysisNode(k+i*2, IntToStr(GetSmallInt(k+i*2)),
-                'Distance to next character');
-        end;
-
-      META_FLOODFILL:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetByte(6)]),
-            'Intensity of red');
-          AddAnalysisNode(7, Format('%0:d ($%0:.2x)', [GetByte(7)]),
-            'Intensity of green');
-          AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
-            'Intensity of blue');
-          AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(19)]),
-            'Reserved');
-          AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
-            'Y value of point where filling starts (in logical units)');
-          AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
-            'X value of point where fillint starts (in logical units)');
-          UpdateColorDisplay(GetDWord(6));
-        end;
-
-
-      META_LINETO, META_MOVETO:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'Y value (in logical units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'X value (in logical units)');
-        end;
-
-      META_OFFSETVIEWPORTORG:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'y coordinate of the viewport origin offset (in device units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'x coordinate of the viewport origin offset (in device units)');
-        end;
-
-      META_OFFSETWINDOWORG:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'y coordinate of the output window origin offset (in device units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'x coordinate of the output window origin offset (in device units)');
-        end;
-
-      META_POLYLINE, META_POLYGON:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)), 'Number of points');
-          for i:=0 to GetWord(6)-1 do begin
-            AddAnalysisNode(8 + i*4, IntToStr(GetSmallInt(8 + i*4)),
-              Format('X coordinate of point #%d (in logical units)', [i+1]));
-            AddAnalysisNode(8 + i*4 + 2, IntToStr(GetSmallInt(8 + i*4 + 2)),
-              Format('Y coordinate of point #%d (in logical units)', [i+1]));
+              'LEFTRECT (Left value of the bounding rect, in logical units)');
           end;
-        end;
 
-      META_POLYPOLYGON:
-        begin
-          n := GetWord(6);
-          AddAnalysisNode(6, IntToStr(n), 'Number of polygons');
-          SetLength(nPts, n);
-          for i:=0 to n-1 do begin
-            nPts[i] := GetWord(8+2*i);
-            AddAnalysisNode(8+2*i, IntToStr(nPts[i]),
-              Format('Number of points in polygon #%d', [i+1]));
+        META_CREATEBRUSHINDIRECT:
+          begin
+            n := GetWord(6);
+            AddAnalysisNode(6, IntToStr(n),
+              Format('Brush style (%s)', [WMF_GetBrushStyleName(n)]));
+            if n in [0, 2] then begin // BS_SOLID, BS_HATCHED
+              AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
+                'Intensity of red');
+              AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(9)]),
+                'Intensity of green');
+              AddAnalysisNode(10, Format('%0:d ($%0:.2x)', [GetByte(10)]),
+                'Intensity of blue');
+              AddAnalysisNode(11, Format('%0:d ($%0:.2x)', [GetByte(11)]),
+                'Reserved');
+              UpdateColorDisplay(GetDWord(8));
+            end else
+              AddAnalysisNode(8, Format('%0:d ($%0:.8x)', [GetDWord(8)]),
+                'Color (to be ignored for this pattern)');
+            if n in [3, 6, 2] then   // BS_PATTERN, BS_DIBPATTERNPT, BS_HATCHED
+              AddAnalysisNode(12, '(not decoded)', 'Brush hatch / pattern');
           end;
-          k := 8 + 2*n;
-          for i:=0 to n-1 do
-            for j:=0 to npts[i]-1 do begin
-              AddAnalysisNode(k, IntToStr(GetSmallInt(k)), Format(
-                'Polygon #%d: X coordinate of point #%d (in logical units)',
-                [i+1, j+1])
-              );
-              inc(k,2);
-              AddAnalysisNode(k, IntToStr(GetSmallInt(k)), Format(
-                'Polygon #%d: Y coordinate of point #%d (in logical units)',
-                [i+1, j+1])
-              );
-              inc(k,2);
-            end;
-        end;
 
-      META_ROUNDRECT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'Height of ellipse for rounded corner (in logical units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'Width of ellipse for rounded corner (in logical units)');
-          AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
-            'Bottom value (in logical units)');
-          AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
-            'Right value (in logical units)');
-          AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
-            'Top value (in logical units)');
-          AddAnalysisNode(16, IntToStr(GetSmallInt(16)),
-            'Left value (in logical units)');
-        end;
-
-      META_SELECTCLIPREGION:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            'Index into WMF Object Table to get the region to be selected for clipping.');
-        end;
-
-      META_SELECTOBJECT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            'Index into WMF Object Table to get object to be selected');
-        end;
-
-      META_SELECTPALETTE:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            'Index into WMF Object Table to get the palette to be selected.');
-        end;
-
-      META_SETBKCOLOR, META_SETTEXTCOLOR:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetByte(6)]),
-            'Intensity of red');
-          AddAnalysisNode(7, Format('%0:d ($%0:.2x)', [GetByte(7)]),
-            'Intensity of green');
-          AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
-            'Intensity of blue');
-          AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(9)]),
-            'Reserved');
-          UpdateColorDisplay(GetDWord(6));
-        end;
-
-      META_SETBKMODE:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
-            Format('Background mix mode (%s)', [WMF_GetBkMixModeName(GetWord(6))]));
-        end;
-
-      META_SETMAPMODE:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            Format('Map mode (%s)', [WMF_GetMapModeName(GetWord(6))]));
-        end;
-
-      META_SETPIXEL:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetByte(6)]),
-            'Intensity of red');
-          AddAnalysisNode(7, Format('%0:d ($%0:.2x)', [GetByte(7)]),
-            'Intensity of green');
-          AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
-            'Intensity of blue');
-          AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(9)]),
-            'Reserved');
-          AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
-            'Y coordinate of pixel (in logical units)');
-          AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
-            'X coordinate of pixel (in logical units)');
-          UpdateColorDisplay(GetDWord(6));
-        end;
-
-      META_SETPOLYFILLMODE:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
-            Format('Polygon fill mode (%s)', [WMF_GetPolyFillModeName(GetWord(6))]));
-        end;
-
-      META_SETROP2:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
-            Format('Foreground raster operation mix mode (%s)',
-              [WMF_GetBinaryRasterOperationName(GetWord(6))])
-          );
-        end;
-
-      META_SETTEXTALIGN:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
-            Format('Text alignment (%s)', [WMF_GetTextAlignName(GetWord(6))]));
-        end;
-
-      META_SETTEXTCHAREXTRA:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            'Amount of space (in logical units) to be added to each character.');
-        end;
-
-      META_SETTEXTJUSTIFICATION:
-        begin
-          AddAnalysisNode(6, IntToStr(GetWord(6)),
-            'Break count, i.e. number of space characters in line');
-          AddAnalysisNode(8, IntToStr(GetWord(8)),
-            'Break extra, i.e. extra space (in logical units) to be added to line of text');
-        end;
-
-      META_SETVIEWPORTEXT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'Vertical extent of the viewport (in device units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'Horizontal extent of the viewport (in device units)');
-        end;
-
-      META_SETVIEWPORTORG:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'y coordinate of the viewport origin (in logical units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'x coordinate of the viewport origin (in logical units)');
-        end;
-
-      META_SETWINDOWEXT:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'Vertical extent of the output window (in logical units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'Horizontal extent of the output window (in logical units)');
-        end;
-
-      META_SETWINDOWORG:
-        begin
-          AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
-            'y coordinate of the output window origin (in logical units)');
-          AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
-            'x coordinate of the output window origin (in logical units)');
-        end;
-
-      META_STRETCHDIB:
-        begin
-          AddAnalysisNode(6, Format('%0:d ($%0:.8x)', [GetDWord(6)]),
-            'Ternary raster operation (must be SRC_COPY for jpeg and png)');
-          AddAnalysisNode(10, Format('%0:d ($%0:.4x)', [GetWord(10)]),
-            'Color usage (must be DIB_RGB_COLORS for jpeg or png)');
-          AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
-            'Height of source rectangle (in logical units)');
-          AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
-            'Width of source rectangle (in logical units)');
-          AddAnalysisNode(16, IntToStr(GetSmallInt(16)),
-            'Y coordinate of source rectangle (in logical units)');
-          AddAnalysisNode(18, IntToStr(GetSmallInt(18)),
-            'X coordinate of source rectangle (in logical units)');
-
-          AddAnalysisNode(20, IntToStr(GetSmallInt(20)),
-            'Height of destination rectangle (in logical units)');
-          AddAnalysisNode(22, IntToStr(GetSmallInt(22)),
-            'Width of destination rectangle (in logical units)');
-          AddAnalysisNode(24, IntToStr(GetSmallInt(24)),
-            'Y coordinate of destination rectangle (in logical units)');
-          AddAnalysisNode(26, IntToStr(GetSmallInt(26)),
-            'X coordinate of destination rectangle (in logical units)');
-
-          n := GetDWord(28);
-          if n = 0 then begin
-            AddAnalysisNode(28, IntToStr(GetDWord(28)),
-              'BitmapCoreHeader.HeaderSize');
-            AddAnalysisNode(32, IntToStr(GetWord(32)),
-              'BitmapCoreHeader.Width');
-            AddAnalysisNode(34, IntToStr(GetWord(34)),
-              'BitmapCoreHeader.Height');
-            AddAnalysisNode(36, IntToStr(GetWord(36)),
-              'BitmapCoreHeader.Planes');
-            n := GetWord(38);
-            case n of
-              0 : s := 'undefined';
-              1 : s := '1 bpp: two colors';
-              4 : s := '4 bpp: 16 colors';
-              8 : s := '8 bpp: 256 colors';
-              16: s := '16 bpp: 2^16 colors';
-              24: s := '2^24 colors';
-              32: s := '2^24 colors';
-            end;
-            AddAnalysisNode(38, IntToStr(GetWord(38)),
-              Format('BitmapCoreHeader.BitCount per pixel (%d = %s)', [n, s]));
-            n := 40;
-          end else begin
-            AddAnalysisNode(28, IntToStr(GetDWord(28)),
-              'BitmapInfoHeader.HeaderSize');
-            AddAnalysisNode(32, IntToStr(GetDWord(32)),
-              'BitmapInfoHeader.Width');
-            AddAnalysisNode(36, IntToStr(GetDWord(36)),
-              'BitmapInfoHeader.Height');
-            AddAnalysisNode(40, IntToStr(GetWord(40)),
-              'BitmapInfoHeader.Planes');
-            n := GetWord(42);
-            case n of
-              0 : s := 'undefined';
-              1 : s := '1 bpp: two colors';
-              4 : s := '4 bpp: 16 colors';
-              8 : s := '8 bpp: 256 colors';
-              16: s := '16 bpp: 2^16 colors';
-              24: s := '2^24 colors';
-              32: s := '2^24 colors';
-            end;
-            AddAnalysisNode(42, IntToStr(n),
-              'BitmapInfoHeader.BitCount per pixel (' + s + ')');
-            n := GetDWord(44);
-            case n of
-              0: s := 'BI_RGB';
-              1: s := 'BI_RLE8';
-              2: s := 'BI_RLE4';
-              3: s := 'BI_BITFIELDS';
-              4: s := 'BI_JPEG';
-              5: s := 'BI_PNG';
-             $B: s := 'BI_CMYK';
-             $C: s := 'BI_CMYKRLE8';
-             $D: s := 'BI_CMYKREL4';
-            end;
-            AddAnalysisNode(44, IntToStr(n),
-              Format('BitmapInfoHeader.Compression (%d = %s)', [n, s]));
-            if n = 0 then  // BI_RGB
-              s := 'ImageSize (ignored)'
-            else if n in [4, 5] then  // BI_JPEG or BI_PNG
-              s := 'ImageSize (specifies the size of the jpeg/png image buffer)'
-            else
-              s := 'ImageSize';
-            n := GetDWord(48);
-            AddAnalysisNode(48, IntToStr(GetDWord(48)),
-              s);
-            AddAnalysisNode(52, IntToStr(GetDWord(52)),
-              'XPelsPerMeter');
-            AddAnalysisNode(56, IntToStr(GetDWord(56)),
-              'YPelsPerMeter');
-            AddAnalysisNode(60, IntToStr(GetDWord(60)),
-              'Colors used');
-            AddAnalysisNode(64, IntToStr(GetDWord(64)),
-              'Colors important');
-            n := 68;
+        META_CREATEFONTINDIRECT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'Font height (in logical units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'Font width (in logical units)');
+            AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
+              'Escapement (in tenths of degrees)');
+            AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
+              'Orientation (in tenths of degrees)');
+            AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
+              'Weight (0=Default, 400=Normal, 700=Bold), max 1000');
+            AddAnalysisNode(16, IntToStr(GetByte(16)),
+              'Italic (0=FALSE, 1=TRUE)');
+            AddAnalysisNode(17, IntToStr(GetByte(17)),
+              'Underline (0=FALSE, 1=TRUE)');
+            AddAnalysisNode(18, IntToStr(GetByte(18)),
+              'Strikeout (0=FALSE, 1=TRUE)');
+            AddAnalysisNode(19, IntToStr(GetByte(19)),
+              'CharSet');
+            AddAnalysisNode(20, IntToStr(GetByte(20)),
+              'OutPrecision');
+            AddAnalysisNode(21, IntToStr(GetByte(21)),
+              'ClipPrecision');
+            AddAnalysisNode(22, IntToStr(GetByte(22)),
+              'Quality');
+            AddAnalysisNode(23, IntToStr(GetByte(23)),
+              'Pitch and family');
+            AddAnalysisNode(24, GetCString(24, 32),
+              'Face name');
           end;
-          AddAnalysisNode(n, '...', 'Colors and Image');
-        end;
 
-      META_TEXTOUT:
-        begin
-          n := GetWord(6);
-          AddAnalysisNode(6, IntToStr(n),
-            'Text length (in Bytes)');
-          AddAnalysisNode(8, GetString(8, n),
-            'String');
-          if odd(n) then inc(n);
-          AddAnalysisNode(8 + n, IntToStr(GetSmallInt(8 + n)),
-            'Y coordinate of point at which drawing starts (in logical units)');
-          AddAnalysisNode(10 + n, IntToStr(GetSmallInt(10 + n)),
-            'X coordinate of point at which drawing starts (in logical units)');
-        end;
-      else
-        AddAnalysisNode(6, '...', '(Undecoded data)');
+        META_CREATEPENINDIRECT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              Format('Pen style (%s)', [WMF_GetPenStyleName(GetWord(6))]));
+            AddAnalysisNode(8, IntToStr(GetWord(8)),
+              'Pen width');
+            AddAnalysisNode(10, IntToStr(GetWord(10)),
+              'Ignored');
+            AddAnalysisNode(12, Format('%0:d ($%0:.2x)', [GetByte(12)]),
+              'Intensity of red');
+            AddAnalysisNode(13, Format('%0:d ($%0:.2x)', [GetByte(13)]),
+              'Intensity of green');
+            AddAnalysisNode(14, Format('%0:d ($%0:.2x)', [GetByte(14)]),
+              'Intensity of blue');
+            AddAnalysisNode(15, Format('%0:d ($%0:.2x)', [GetByte(15)]),
+              'Reserved');
+            UpdateColorDisplay(GetDWord(12));
+          end;
+
+        META_DELETEOBJECT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              'Index into WMF Object Table to get object to be deleted');
+          end;
+
+        META_DIBCREATEPATTERNBRUSH:
+          begin
+            n := GetWord(6);
+            AddAnalysisNode(6, IntToStr(n),
+              Format('Brush style (%s)', [WMF_GetBrushStyleName(n)]));
+            n := GetWord(8);
+            AddAnalysisNode(8, IntToStr(n),
+              Format('Color usage (%s)', [WMF_GetColorUsageName(n)]));
+            n := GetDWord(10);
+            AddAnalysisNode(10, IntToStr(n),
+              'DIBHeaderInfo: HeaderSize');
+            if n = $0000000C then begin
+              AddAnalysisNode(14, IntToStr(GetWord(14)),
+                'BitmapCoreHeader.Width');
+              AddAnalysisNode(16, IntToStr(GetWord(16)),
+                'BitmapCoreHeader.Height');
+              AddAnalysisNode(18, IntToStr(GetWord(18)),
+                'BitmapCoreHeader.Planes');
+              AddAnalysisNode(20, IntToStr(GetWord(20)),
+                'BitmapCoreHeader.BitCount');
+              AddAnalysisNode(22, '...',
+                'Colors and bitmap buffer');
+            end else begin
+              AddAnalysisNode(14, IntToStr(GetDWord(14)),
+                'BitmapInfoHeader.Width');
+              AddAnalysisNode(18, IntToStr(GetDWord(18)),
+                'BitmapInfoHeader.Height');
+              AddAnalysisNode(22, IntToStr(GetWord(22)),
+                'BitmapInfoHeaer.Planes');
+              AddAnalysisNode(24, IntToStr(GetWord(24)),
+                'BitmapInfoHeader.BitCount');
+              n := GetDWord(26);
+              AddAnalysisNode(26, IntToStr(n), Format(
+                'BitmapInfoHeader.Compression (%s)', [WMF_GetCompressionName(n)]));
+              AddAnalysisNode(30, IntToStr(GetDWord(30)),
+                'BitmapInfoHeader.ImageSize, bytes');
+              AddAnalysisNode(34, IntToStr(GetDWord(34)),
+                'BitmapInfoHeader.XPelsPerMeter');
+              AddAnalysisNode(38, IntToStr(GetDWord(38)),
+                'BitmapInfoHeader.YPelsPerMeter');
+              AddAnalysisNode(42, IntToStr(GetDWord(42)),
+                'BitmapInfoHeader.ColorUsed');
+              AddAnalysisNode(46, IntToStr(GetDWord(46)),
+                'BitmapInfoHeader.ColorImportant');
+              AddAnalysisNode(50, '...',
+                'Colors and bitmap buffer');
+              bmp := GetBitmap(10);  // Offset to DIBHeaderInfo.Size
+              if bmp <> nil then begin
+                Image.Picture.Assign(bmp);
+                Image.Proportional := (bmp.Width > Image.Width) or (bmp.Height > Image.Height);
+                Image.Parent := Panel2;
+                Image.Align := alClient;
+                bmp.Free;
+              end;
+            end;
+          end;
+
+        META_ELLIPSE, META_RECTANGLE:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'Bottom value (in logical units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'Right value (in logical units)');
+            AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
+              'Top value (in logical units)');
+            AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
+              'Left value (in logical units)');
+          end;
+
+        META_EOF:
+          begin
+            // no more data
+          end;
+
+        META_EXTTEXTOUT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'Y coordinate (in logical units) where text is located');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'X coordinate (in logical units) where text is located');
+            j := GetSmallInt(10);
+            AddAnalysisNode(10, IntToStr(j),
+              'String length (character count)');
+            n := GetWord(12);
+            AddAnalysisNode(12, Format('%0:d ($%0:.4x)', [n]),
+              'Option flags (OPAQUE = 2, CLIPPED = 4)');
+            if n <> 0 then begin
+              AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
+                'Background/clipping rectangle: Bottom');
+              AddAnalysisNode(16, IntToStr(GetSmallInt(16)),
+                'Background/clipping rectangle: Right');
+              AddAnalysisNode(18, IntToStr(GetSmallInt(18)),
+                'Background/clipping rectangle: Top');
+              AddAnalysisNode(20, IntToStr(GetSmallInt(20)),
+                'Background/clipping rectangle: Left');
+              k := 22;
+            end else
+              k := 14;
+            AddAnalysisNode(k, GetString(k, j),
+              'String');
+            if odd(j) then inc(k, j+1) else inc(k,j);
+            for i:=0 to j-1 do
+              if k + i*2 < Length(FBuffer) then
+                AddAnalysisNode(k+i*2, IntToStr(GetSmallInt(k+i*2)),
+                  'Distance to next character');
+          end;
+
+        META_FLOODFILL:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetByte(6)]),
+              'Intensity of red');
+            AddAnalysisNode(7, Format('%0:d ($%0:.2x)', [GetByte(7)]),
+              'Intensity of green');
+            AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
+              'Intensity of blue');
+            AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(19)]),
+              'Reserved');
+            AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
+              'Y value of point where filling starts (in logical units)');
+            AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
+              'X value of point where fillint starts (in logical units)');
+            UpdateColorDisplay(GetDWord(6));
+          end;
+
+
+        META_LINETO, META_MOVETO:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'Y value (in logical units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'X value (in logical units)');
+          end;
+
+        META_OFFSETVIEWPORTORG:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'y coordinate of the viewport origin offset (in device units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'x coordinate of the viewport origin offset (in device units)');
+          end;
+
+        META_OFFSETWINDOWORG:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'y coordinate of the output window origin offset (in device units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'x coordinate of the output window origin offset (in device units)');
+          end;
+
+        META_POLYLINE, META_POLYGON:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)), 'Number of points');
+            for i:=0 to GetWord(6)-1 do begin
+              AddAnalysisNode(8 + i*4, IntToStr(GetSmallInt(8 + i*4)),
+                Format('X coordinate of point #%d (in logical units)', [i+1]));
+              AddAnalysisNode(8 + i*4 + 2, IntToStr(GetSmallInt(8 + i*4 + 2)),
+                Format('Y coordinate of point #%d (in logical units)', [i+1]));
+            end;
+          end;
+
+        META_POLYPOLYGON:
+          begin
+            n := GetWord(6);
+            AddAnalysisNode(6, IntToStr(n), 'Number of polygons');
+            SetLength(nPts, n);
+            for i:=0 to n-1 do begin
+              nPts[i] := GetWord(8+2*i);
+              AddAnalysisNode(8+2*i, IntToStr(nPts[i]),
+                Format('Number of points in polygon #%d', [i+1]));
+            end;
+            k := 8 + 2*n;
+            for i:=0 to n-1 do
+              for j:=0 to npts[i]-1 do begin
+                AddAnalysisNode(k, IntToStr(GetSmallInt(k)), Format(
+                  'Polygon #%d: X coordinate of point #%d (in logical units)',
+                  [i+1, j+1])
+                );
+                inc(k,2);
+                AddAnalysisNode(k, IntToStr(GetSmallInt(k)), Format(
+                  'Polygon #%d: Y coordinate of point #%d (in logical units)',
+                  [i+1, j+1])
+                );
+                inc(k,2);
+              end;
+          end;
+
+        META_ROUNDRECT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'Height of ellipse for rounded corner (in logical units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'Width of ellipse for rounded corner (in logical units)');
+            AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
+              'Bottom value (in logical units)');
+            AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
+              'Right value (in logical units)');
+            AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
+              'Top value (in logical units)');
+            AddAnalysisNode(16, IntToStr(GetSmallInt(16)),
+              'Left value (in logical units)');
+          end;
+
+        META_SELECTCLIPREGION:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              'Index into WMF Object Table to get the region to be selected for clipping.');
+          end;
+
+        META_SELECTOBJECT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              'Index into WMF Object Table to get object to be selected');
+          end;
+
+        META_SELECTPALETTE:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              'Index into WMF Object Table to get the palette to be selected.');
+          end;
+
+        META_SETBKCOLOR, META_SETTEXTCOLOR:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetByte(6)]),
+              'Intensity of red');
+            AddAnalysisNode(7, Format('%0:d ($%0:.2x)', [GetByte(7)]),
+              'Intensity of green');
+            AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
+              'Intensity of blue');
+            AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(9)]),
+              'Reserved');
+            UpdateColorDisplay(GetDWord(6));
+          end;
+
+        META_SETBKMODE:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
+              Format('Background mix mode (%s)', [WMF_GetBkMixModeName(GetWord(6))]));
+          end;
+
+        META_SETMAPMODE:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              Format('Map mode (%s)', [WMF_GetMapModeName(GetWord(6))]));
+          end;
+
+        META_SETPIXEL:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetByte(6)]),
+              'Intensity of red');
+            AddAnalysisNode(7, Format('%0:d ($%0:.2x)', [GetByte(7)]),
+              'Intensity of green');
+            AddAnalysisNode(8, Format('%0:d ($%0:.2x)', [GetByte(8)]),
+              'Intensity of blue');
+            AddAnalysisNode(9, Format('%0:d ($%0:.2x)', [GetByte(9)]),
+              'Reserved');
+            AddAnalysisNode(10, IntToStr(GetSmallInt(10)),
+              'Y coordinate of pixel (in logical units)');
+            AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
+              'X coordinate of pixel (in logical units)');
+            UpdateColorDisplay(GetDWord(6));
+          end;
+
+        META_SETPOLYFILLMODE:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
+              Format('Polygon fill mode (%s)', [WMF_GetPolyFillModeName(GetWord(6))]));
+          end;
+
+        META_SETROP2:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
+              Format('Foreground raster operation mix mode (%s)',
+                [WMF_GetBinaryRasterOperationName(GetWord(6))])
+            );
+          end;
+
+        META_SETTEXTALIGN:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.2x)', [GetWord(6)]),
+              Format('Text alignment (%s)', [WMF_GetTextAlignName(GetWord(6))]));
+          end;
+
+        META_SETTEXTCHAREXTRA:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              'Amount of space (in logical units) to be added to each character.');
+          end;
+
+        META_SETTEXTJUSTIFICATION:
+          begin
+            AddAnalysisNode(6, IntToStr(GetWord(6)),
+              'Break count, i.e. number of space characters in line');
+            AddAnalysisNode(8, IntToStr(GetWord(8)),
+              'Break extra, i.e. extra space (in logical units) to be added to line of text');
+          end;
+
+        META_SETVIEWPORTEXT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'Vertical extent of the viewport (in device units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'Horizontal extent of the viewport (in device units)');
+          end;
+
+        META_SETVIEWPORTORG:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'y coordinate of the viewport origin (in logical units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'x coordinate of the viewport origin (in logical units)');
+          end;
+
+        META_SETWINDOWEXT:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'Vertical extent of the output window (in logical units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'Horizontal extent of the output window (in logical units)');
+          end;
+
+        META_SETWINDOWORG:
+          begin
+            AddAnalysisNode(6, IntToStr(GetSmallInt(6)),
+              'y coordinate of the output window origin (in logical units)');
+            AddAnalysisNode(8, IntToStr(GetSmallInt(8)),
+              'x coordinate of the output window origin (in logical units)');
+          end;
+
+        META_STRETCHDIB:
+          begin
+            AddAnalysisNode(6, Format('%0:d ($%0:.8x)', [GetDWord(6)]),
+              'Ternary raster operation (must be SRC_COPY for jpeg and png)');
+            AddAnalysisNode(10, Format('%0:d ($%0:.4x)', [GetWord(10)]),
+              'Color usage (must be DIB_RGB_COLORS for jpeg or png)');
+            AddAnalysisNode(12, IntToStr(GetSmallInt(12)),
+              'Height of source rectangle (in logical units)');
+            AddAnalysisNode(14, IntToStr(GetSmallInt(14)),
+              'Width of source rectangle (in logical units)');
+            AddAnalysisNode(16, IntToStr(GetSmallInt(16)),
+              'Y coordinate of source rectangle (in logical units)');
+            AddAnalysisNode(18, IntToStr(GetSmallInt(18)),
+              'X coordinate of source rectangle (in logical units)');
+
+            AddAnalysisNode(20, IntToStr(GetSmallInt(20)),
+              'Height of destination rectangle (in logical units)');
+            AddAnalysisNode(22, IntToStr(GetSmallInt(22)),
+              'Width of destination rectangle (in logical units)');
+            AddAnalysisNode(24, IntToStr(GetSmallInt(24)),
+              'Y coordinate of destination rectangle (in logical units)');
+            AddAnalysisNode(26, IntToStr(GetSmallInt(26)),
+              'X coordinate of destination rectangle (in logical units)');
+
+            n := GetDWord(28);
+            if n = 0 then begin
+              AddAnalysisNode(28, IntToStr(GetDWord(28)),
+                'BitmapCoreHeader.HeaderSize');
+              AddAnalysisNode(32, IntToStr(GetWord(32)),
+                'BitmapCoreHeader.Width');
+              AddAnalysisNode(34, IntToStr(GetWord(34)),
+                'BitmapCoreHeader.Height');
+              AddAnalysisNode(36, IntToStr(GetWord(36)),
+                'BitmapCoreHeader.Planes');
+              n := GetWord(38);
+              case n of
+                0 : s := 'undefined';
+                1 : s := '1 bpp: two colors';
+                4 : s := '4 bpp: 16 colors';
+                8 : s := '8 bpp: 256 colors';
+                16: s := '16 bpp: 2^16 colors';
+                24: s := '2^24 colors';
+                32: s := '2^24 colors';
+              end;
+              AddAnalysisNode(38, IntToStr(GetWord(38)),
+                Format('BitmapCoreHeader.BitCount per pixel (%d = %s)', [n, s]));
+              n := 40;
+            end else begin
+              AddAnalysisNode(28, IntToStr(GetDWord(28)),
+                'BitmapInfoHeader.HeaderSize');
+              AddAnalysisNode(32, IntToStr(GetDWord(32)),
+                'BitmapInfoHeader.Width');
+              AddAnalysisNode(36, IntToStr(GetDWord(36)),
+                'BitmapInfoHeader.Height');
+              AddAnalysisNode(40, IntToStr(GetWord(40)),
+                'BitmapInfoHeader.Planes');
+              n := GetWord(42);
+              case n of
+                0 : s := 'undefined';
+                1 : s := '1 bpp: two colors';
+                4 : s := '4 bpp: 16 colors';
+                8 : s := '8 bpp: 256 colors';
+                16: s := '16 bpp: 2^16 colors';
+                24: s := '2^24 colors';
+                32: s := '2^24 colors';
+              end;
+              AddAnalysisNode(42, IntToStr(n),
+                'BitmapInfoHeader.BitCount per pixel (' + s + ')');
+              n := GetDWord(44);
+              case n of
+                0: s := 'BI_RGB';
+                1: s := 'BI_RLE8';
+                2: s := 'BI_RLE4';
+                3: s := 'BI_BITFIELDS';
+                4: s := 'BI_JPEG';
+                5: s := 'BI_PNG';
+               $B: s := 'BI_CMYK';
+               $C: s := 'BI_CMYKRLE8';
+               $D: s := 'BI_CMYKREL4';
+              end;
+              AddAnalysisNode(44, IntToStr(n),
+                Format('BitmapInfoHeader.Compression (%d = %s)', [n, s]));
+              if n = 0 then  // BI_RGB
+                s := 'ImageSize (ignored)'
+              else if n in [4, 5] then  // BI_JPEG or BI_PNG
+                s := 'ImageSize (specifies the size of the jpeg/png image buffer)'
+              else
+                s := 'ImageSize';
+              n := GetDWord(48);
+              AddAnalysisNode(48, IntToStr(GetDWord(48)),
+                s);
+              AddAnalysisNode(52, IntToStr(GetDWord(52)),
+                'XPelsPerMeter');
+              AddAnalysisNode(56, IntToStr(GetDWord(56)),
+                'YPelsPerMeter');
+              AddAnalysisNode(60, IntToStr(GetDWord(60)),
+                'Colors used');
+              AddAnalysisNode(64, IntToStr(GetDWord(64)),
+                'Colors important');
+              n := 68;
+            end;
+            AddAnalysisNode(n, '...', 'Colors and Image');
+          end;
+
+        META_TEXTOUT:
+          begin
+            n := GetWord(6);
+            AddAnalysisNode(6, IntToStr(n),
+              'Text length (in Bytes)');
+            AddAnalysisNode(8, GetString(8, n),
+              'String');
+            if odd(n) then inc(n);
+            AddAnalysisNode(8 + n, IntToStr(GetSmallInt(8 + n)),
+              'Y coordinate of point at which drawing starts (in logical units)');
+            AddAnalysisNode(10 + n, IntToStr(GetSmallInt(10 + n)),
+              'X coordinate of point at which drawing starts (in logical units)');
+          end;
+        else
+          AddAnalysisNode(6, '...', '(Undecoded data)');
+      end;
     end;
+
+  finally
+    AnalysisTree.EndUpdate;
   end;
 end;
 
@@ -1523,6 +1544,7 @@ begin
   end;
   PopulateValueGrid;
   ValueGridClick(nil);
+  UpdateWMFObjList(data^.Offset);
 end;
 
 procedure TMainForm.TreeFreeNode(Sender: TBaseVirtualTree; Node: PVirtualNode);
@@ -1552,6 +1574,254 @@ begin
     Caption := Format('wmfExplorer - "%s"', [FFileName])
   else
     Caption := 'wmfExplorer';
+end;
+
+procedure TMainForm.UpdateWMFObjList(AOffset: Int64);
+type
+  TParamArray = array of word;
+const
+  SIZE_OF_WORD = 2;
+
+  procedure AddToList(AInfo: String);
+  var
+    i: Integer;
+    s: String;
+  begin
+    for i := 0 to WMFObjList.Items.Count-1 do
+    begin
+      s := WMFObjList.Items[i];
+      while (s <> '') and (s[1] in [' ', '-', '0'..'9']) do
+        Delete(s, 1, 1);
+      if s = '' then begin
+        WMFObjList.Items[i] := Format('%d - %s', [i, AInfo]);
+        exit;
+      end;
+    end;
+    i := WMFObjList.Items.Count;
+    WMFObjList.Items.Add(Format('%d - %s', [i, AInfo]));
+  end;
+
+  procedure BrushInfo(const AParams: TParamArray);
+  var
+    brushRec: PWMFBrushRecord;
+    info: String;
+  begin
+    info := 'BRUSH: style';
+    brushRec := PWMFBrushRecord(@AParams[0]);
+
+    // brush style
+    case brushRec^.Style of
+      BS_SOLID:
+        info := info + ' solid';
+      BS_NULL:
+        info := info + ' clear';
+      BS_HATCHED:
+        case brushRec^.Hatch of
+          HS_HORIZONTAL : info := info + ' horizontal';
+          HS_VERTICAL   : info := info + ' vertical';
+          HS_FDIAGONAL  : info := info + ' diagonal';
+          HS_BDIAGONAL  : info := info + ' back-diagonal';
+          HS_CROSS      : info := info + ' cross';
+          HS_DIAGCROSS  : info := info + ' diag-cross';
+        end;
+      else
+        info := info + ' (unknown)';
+    end;
+
+    // brush color
+    info := info + ', color ' + Format('#$%.2x%.2x%.2x', [brushRec^.ColorRED, brushRec^.ColorGREEN, brushRec^.ColorBlue]);
+
+    AddToList(info);
+  end;
+
+  procedure FontInfo(const AParams: TParamArray);
+  var
+    fontRec: PWMFFontRecord;
+    fntName: String = '';
+    idx: Integer;
+    info: String;
+  begin
+    info := 'FONT:';
+
+    idx := Length(AParams);
+    fontRec := PWMFFontRecord(@AParams[0]);
+
+    // Get font name
+    SetLength(fntName, 32);
+    idx := SizeOf(TWMFFontRecord) div SIZE_OF_WORD;
+    fntname := StrPas(PChar(@AParams[idx]));
+
+    info := info + ' "' + fntName + '", size ' + IntToStr(fontRec^.Height);
+    if fontRec^.Weight >= 700 then
+      info := info + ', bold';
+    if fontRec^.Italic <> 0 then
+      info := info + ', italic';
+    if fontRec^.Underline <> 0 then
+      info := info + ', underline';
+    if fontRec^.Strikeout <> 0 then
+      info := info + ', strikeout';
+    if fontRec^.Escapement <> 0 then
+      info := info + FormatFloat(', 0.0°', 1.0*fontRec^.Escapement);
+
+    AddToList(info);
+  end;
+
+  procedure PenInfo(const AParams: TParamArray);
+  var
+    penRec: PWMFPenRecord;
+    info: String;
+  begin
+    info := 'PEN: stye ';
+
+    penRec := PWMFPenRecord(@AParams[0]);
+    // pen style
+    case penRec^.Style and $000F of
+      PS_DASH       : info := info + ' dash';
+      PS_DOT        : info := info + ' dot';
+      PS_DASHDOT    : info := info + ' dash-dot';
+      PS_DASHDOTDOT : info := info + ' dash-dot-dot';
+      PS_NULL       : info := info + ' clear';
+      PS_INSIDEFRAME: info := info + ' insideFrame';
+      else            info := info + ' (unknown)';
+    end;
+
+    // pen width
+    info := info + ', width ' + IntToStr(penRec^.Width);
+
+    // pen color
+    info := info + ', color ' + Format('#$%.2x%.2x%.2x', [penRec^.ColorRED, penRec^.ColorGREEN, penRec^.ColorBlue]);
+
+    AddToList(info);
+  end;
+
+  procedure RegionInfo(const AParams: TParamArray);
+  var
+    info: String;
+  begin
+    info := 'REGION: (not handled)';
+    AddToList(info);
+  end;
+
+  procedure PaletteInfo(const AParams: TParamArray);
+  var
+    info: String;
+  begin
+    info := 'PALETTE: (not handled)';
+    AddToList(info);
+  end;
+
+  procedure PatternBrushInfo(const AParams: TParamArray);
+  var
+    info: String;
+  begin
+    info := 'PATTERN BRUSH: (not handled)';
+    AddToList(info);
+  end;
+
+  procedure DIBPatternBrushInfo(const AParams: TParamArray);
+  var
+    info: String;
+  begin
+    info := 'DIB PATTERN BRUSH: (not handled)';
+    AddToList(info);
+  end;
+
+  procedure DeleteObj(const AParams: TParamArray);
+  var
+    idx: Integer;
+  begin
+    idx := AParams[0];
+    WMFObjList.Items[idx] := Format('%d -', [idx]);
+  end;
+
+  procedure SelectObj(const AParams: TParamArray);
+  var
+    idx: Integer;
+  begin
+    idx := AParams[0];
+    WMFObjList.ItemIndex := idx;
+  end;
+
+var
+  phdr: TPlaceableMetaHeader;
+  mhdr: TWMFHeader;
+  rec: TWMFRecord;
+  params: TParamArray = nil;
+  savedPos: Int64;
+  startPos: Int64;
+  b: Byte;
+begin
+  startPos := FStream.Position;
+  WMFObjList.Items.Clear;
+
+  FStream.Position := 0;
+  b := FStream.ReadByte;
+  FStream.Position := 0;
+  if b = $D7 then begin  // Assume that file begins with a placeable meta file header
+    phdr := Default(TPlaceableMetaHeader);
+    FStream.ReadBuffer(phdr, SizeOf(phdr));
+    if phdr.Key <> $9AC6CDD7 then begin
+      MessageDlg(Format('Unknown structure of file "%s"', [FFileName]), mtError, [mbOK], 0);
+      exit;
+    end;
+  end else
+  if not ((b = 0) or (b = 1)) then begin
+    MessageDlg(Format('Unknown structure of file "%s"', [FFileName]), mtError, [mbOK], 0);
+    exit;
+  end;
+
+  // Read "normal" metafile header
+  mhdr := Default(TWMFHeader);
+  FStream.ReadBuffer(mhdr, SizeOf(mhdr));
+
+  // Read metafile records
+  while FStream.Position < FStream.Size do begin
+    savedPos := FStream.Position;
+    FStream.ReadBuffer(rec, SizeOf(rec));
+
+    if rec.Func = META_EOF then
+      break;
+
+    if rec.Size < 3 then begin
+      MessageDlg(Format('Record size error at position %d', [savedPos]), mtError, [mbOk], 0);
+      exit;
+    end;
+
+    // Read parameters
+    SetLength(params, rec.Size - 3);
+    FStream.ReadBuffer(params[0], (rec.Size - 3)*SIZE_OF_WORD);
+
+    case rec.Func of
+      META_CREATEBRUSHINDIRECT:
+        BrushInfo(params);
+      META_CREATEFONTINDIRECT:
+        FontInfo(params);
+      META_CREATEPALETTE:
+        PaletteInfo(params);
+      META_CREATEPATTERNBRUSH:
+        PatternBrushInfo(params);
+      META_CREATEPENINDIRECT:
+        PenInfo(params);
+      META_CREATEREGION:
+        RegionInfo(params);
+      META_DIBCREATEPATTERNBRUSH:
+        DIBPatternBrushInfo(params);
+      META_DELETEOBJECT:
+        DeleteObj(params);
+      META_SELECTOBJECT:
+        SelectObj(params);
+    end;
+    if rec.Size = 0 then begin
+      MessageDlg('Invalid record size 0 encountered at offset '+ IntToStr(savedPos) + '. Closing...',
+        mtError, [mbOK], 0);
+      break;
+    end;
+    FStream.Position := savedPos + rec.Size*SizeOf(word);
+    if FStream.Position > AOffset then
+      break;
+  end;
+
+  FStream.Position := startPos;
 end;
 
 procedure TMainForm.ValueGridClick(Sender: TObject);

@@ -7,7 +7,8 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, fpvectorialpkg, wxMain, wxutils;
+  Forms, fpvectorialpkg, wxMain, wxutils, mrumanager, MPHexEditor,
+  MPHexEditorEx;
 
 {$R *.res}
 

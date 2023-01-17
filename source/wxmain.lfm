@@ -4,15 +4,15 @@ object MainForm: TMainForm
   Top = 136
   Width = 1024
   Caption = 'MainForm'
-  ClientHeight = 710
+  ClientHeight = 730
   ClientWidth = 1024
   Menu = MainMenu1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '2.1.0.0'
+  LCLVersion = '2.3.0.0'
   object Tree: TLazVirtualStringTree
     Left = 0
-    Height = 662
+    Height = 682
     Top = 48
     Width = 285
     Align = alLeft
@@ -44,27 +44,27 @@ object MainForm: TMainForm
   end
   object Splitter1: TSplitter
     Left = 285
-    Height = 662
+    Height = 682
     Top = 48
     Width = 5
   end
   object PageControl1: TPageControl
     Left = 290
-    Height = 662
+    Height = 682
     Top = 48
     Width = 734
-    ActivePage = PgData
+    ActivePage = PgAnalysis
     Align = alClient
-    TabIndex = 1
+    TabIndex = 0
     TabOrder = 2
     OnChange = PageControl1Change
     object PgAnalysis: TTabSheet
       Caption = 'Analysis'
-      ClientHeight = 634
+      ClientHeight = 654
       ClientWidth = 726
       object AnalysisTree: TLazVirtualStringTree
         Left = 0
-        Height = 570
+        Height = 447
         Top = 64
         Width = 726
         Align = alClient
@@ -186,16 +186,44 @@ object MainForm: TMainForm
           Width = 58
         end
       end
+      object WMFObjList: TListBox
+        Left = 0
+        Height = 121
+        Top = 533
+        Width = 726
+        Align = alBottom
+        Columns = 3
+        ItemHeight = 0
+        TabOrder = 2
+      end
+      object Splitter3: TSplitter
+        Cursor = crVSplit
+        Left = 0
+        Height = 5
+        Top = 511
+        Width = 726
+        Align = alBottom
+        ResizeAnchor = akBottom
+      end
+      object Label1: TLabel
+        Left = 0
+        Height = 15
+        Top = 516
+        Width = 726
+        Align = alBottom
+        BorderSpacing.Bottom = 2
+        Caption = 'WMF Object List (effective up to selected record'
+      end
     end
     object PgData: TTabSheet
       Caption = 'Data'
-      ClientHeight = 634
+      ClientHeight = 654
       ClientWidth = 726
       object Splitter2: TSplitter
         Cursor = crVSplit
         Left = 0
         Height = 5
-        Top = 249
+        Top = 269
         Width = 726
         Align = alBottom
         ResizeAnchor = akBottom
@@ -203,7 +231,7 @@ object MainForm: TMainForm
       object ValueGrid: TStringGrid
         Left = 0
         Height = 380
-        Top = 254
+        Top = 274
         Width = 726
         Align = alBottom
         ColCount = 3
@@ -231,7 +259,7 @@ object MainForm: TMainForm
       end
       object HexPanel: TPanel
         Left = 0
-        Height = 249
+        Height = 269
         Top = 0
         Width = 726
         Align = alClient
@@ -241,11 +269,11 @@ object MainForm: TMainForm
     end
     object PgGraphic: TTabSheet
       Caption = 'Graphic'
-      ClientHeight = 634
+      ClientHeight = 654
       ClientWidth = 726
       object PaintBox1: TPaintBox
         Left = 0
-        Height = 634
+        Height = 654
         Top = 0
         Width = 726
         Align = alClient
@@ -360,6 +388,12 @@ object MainForm: TMainForm
       object MnuRecentlyOpened: TMenuItem
         Caption = 'Recently used'
       end
+      object Separator1: TMenuItem
+        Caption = '-'
+      end
+      object MenuItem1: TMenuItem
+        Action = AcExternalViewer
+      end
       object MenuItem2: TMenuItem
         Caption = '-'
       end
@@ -388,6 +422,11 @@ object MainForm: TMainForm
       Caption = 'E&xit'
       Hint = 'Exit'
       ImageIndex = 1
+    end
+    object AcExternalViewer: TAction
+      Category = 'File'
+      Caption = 'External viewer...'
+      OnExecute = AcExternalViewerExecute
     end
   end
   object MRUPopupMenu: TPopupMenu

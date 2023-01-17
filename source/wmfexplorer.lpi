@@ -46,7 +46,7 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="6">
       <Unit0>
         <Filename Value="wmfexplorer.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -63,6 +63,20 @@
         <Filename Value="wxutils.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="thirdparty\mphexeditor.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="MPHexEditor"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="thirdparty\mrumanager.pp"/>
+        <IsPartOfProject Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="thirdparty\mphexeditorex.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="MPHexEditorEx"/>
+      </Unit5>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
