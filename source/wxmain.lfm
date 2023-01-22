@@ -225,7 +225,6 @@ object MainForm: TMainForm
         Top = 533
         Width = 726
         Align = alBottom
-        Columns = 3
         ItemHeight = 0
         TabOrder = 2
       end
