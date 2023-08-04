@@ -7,9 +7,10 @@ object MainForm: TMainForm
   ClientHeight = 730
   ClientWidth = 1024
   Menu = MainMenu
+  OnActivate = FormActivate
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '2.3.0.0'
+  LCLVersion = '3.99.0.0'
   object Tree: TLazVirtualStringTree
     Left = 0
     Height = 682

@@ -61,6 +61,7 @@ type
     procedure AnalysisTreeFreeNode(Sender: TBaseVirtualTree; Node: PVirtualNode);
     procedure AnalysisTreeGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
       Column: TColumnIndex; TextType: TVSTTextType; var CellText: String);
+    procedure FormActivate(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure HexViewClick(Sender: TObject);
@@ -84,6 +85,7 @@ type
     FBuffer: array of byte;
     FCurrOffset: Int64;
     FHexView: TMPHexEditor;
+    FActivated: Boolean;
     MRUMenuManager: TMRUMenuManager;
     function AddAnalysisNode(AOffset: Integer; AValue, ADescription: String): PVirtualNode;
     function AddNode(AOffset: Int64; AText: String; ASizeInBytes: Integer): PVirtualNode;
@@ -200,6 +202,15 @@ begin
     0: CellText := IntToStr(data^.Offset);
     1: CellText := data^.Value;
     2: CellText := data^.Description;
+  end;
+end;
+
+procedure TMainForm.FormActivate(Sender: TObject);
+begin
+  if not FActivated then
+  begin
+    FActivated := true;
+    // Read ini file here...
   end;
 end;
 
